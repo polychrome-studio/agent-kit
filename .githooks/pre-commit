@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Amber pre-commit hook — block secret leaks before they enter history.
+# Enable once with:  git config core.hooksPath .githooks
+# Requires gitleaks:  brew install gitleaks
+
+set -euo pipefail
+
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "→ gitleaks: scanning staged changes…"
+  if ! gitleaks protect --staged --redact --verbose; then
+    echo ""
+    echo "✗ gitleaks found potential secrets in your staged changes. Commit blocked."
+    echo "  Review above. If it's a false positive, see gitleaks allowlisting."
+    exit 1
+  fi
+  echo "✓ gitleaks: clean"
+else
+  echo "⚠ gitleaks not installed — skipping secret scan (brew install gitleaks)."
+  echo "  Proceeding WITHOUT a secret scan. Double-check no keys are staged."
+fi
+
+# Belt-and-suspenders: hard-block obvious key patterns even without gitleaks.
+if git diff --cached -U0 | grep -nE 'sk-ant-(api|oat)[0-9a-zA-Z_-]{8,}|sk-or-v1-[0-9a-f]{8,}|AKIA[0-9A-Z]{16}' >/dev/null 2>&1; then
+  echo "✗ A string matching an Anthropic / OpenRouter / AWS key pattern is staged. Commit blocked."
+  echo "  Remove the secret, store it in the OS keychain or a gitignored .env, and re-commit."
+  exit 1
+fi
+
+exit 0
