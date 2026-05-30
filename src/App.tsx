@@ -6,16 +6,19 @@ type Role = "user" | "assistant" | "system";
 interface Message {
   role: Role;
   content: string;
+  sources?: string[];
 }
 
 // Mirrors the Rust StreamEvent enum (serde lowercase tag/content).
 type StreamEvent =
+  | { type: "sources"; data: string[] }
   | { type: "token"; data: string }
   | { type: "done" }
   | { type: "error"; data: string };
 
 function App() {
   const [hasKey, setHasKey] = useState<boolean | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -23,7 +26,10 @@ function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    invoke<boolean>("has_api_key").then(setHasKey);
+    invoke<boolean>("has_api_key").then((ok) => {
+      setHasKey(ok);
+      if (!ok) setShowSettings(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -42,18 +48,17 @@ function App() {
 
     const onEvent = new Channel<StreamEvent>();
     onEvent.onmessage = (ev) => {
-      if (ev.type === "token") {
-        setMessages((m) => {
-          const copy = [...m];
-          copy[copy.length - 1] = {
-            role: "assistant",
-            content: copy[copy.length - 1].content + ev.data,
-          };
-          return copy;
-        });
-      } else if (ev.type === "error") {
-        setError(ev.data);
-      }
+      setMessages((m) => {
+        const copy = [...m];
+        const last = copy[copy.length - 1];
+        if (ev.type === "token") {
+          copy[copy.length - 1] = { ...last, content: last.content + ev.data };
+        } else if (ev.type === "sources") {
+          copy[copy.length - 1] = { ...last, sources: ev.data };
+        }
+        return copy;
+      });
+      if (ev.type === "error") setError(ev.data);
     };
 
     try {
@@ -69,31 +74,49 @@ function App() {
     return <main className="amber loading">…</main>;
   }
 
-  if (!hasKey) {
-    return <Settings onSaved={() => setHasKey(true)} />;
+  if (showSettings) {
+    return (
+      <Settings
+        hasKey={hasKey}
+        onChanged={(ok) => setHasKey(ok)}
+        onClose={hasKey ? () => setShowSettings(false) : undefined}
+      />
+    );
   }
 
   return (
     <main className="amber">
       <header className="topbar">
         <span className="brand">amber</span>
-        <button className="ghost" onClick={() => setHasKey(false)}>
+        <button className="ghost" onClick={() => setShowSettings(true)}>
           settings
         </button>
       </header>
 
       <div className="thread" ref={scrollRef}>
         {messages.length === 0 && (
-          <div className="empty">Ask Amber anything.</div>
+          <div className="empty">Ask Amber anything — grounded in your vault.</div>
         )}
         {messages.map((m, i) => (
           <div key={i} className={`msg ${m.role}`}>
             <div className="bubble">
               {m.content || (streaming && i === messages.length - 1 ? "▍" : "")}
             </div>
+            {m.sources && m.sources.length > 0 && (
+              <div className="sources">
+                <span className="sources-label">grounded in</span>
+                {m.sources.map((s) => (
+                  <span key={s} className="chip">{s}</span>
+                ))}
+              </div>
+            )}
           </div>
         ))}
-        {error && <div className="msg error"><div className="bubble">{error}</div></div>}
+        {error && (
+          <div className="msg error">
+            <div className="bubble">{error}</div>
+          </div>
+        )}
       </div>
 
       <form
@@ -118,22 +141,51 @@ function App() {
   );
 }
 
-function Settings({ onSaved }: { onSaved: () => void }) {
+function Settings({
+  hasKey,
+  onChanged,
+  onClose,
+}: {
+  hasKey: boolean;
+  onChanged: (hasKey: boolean) => void;
+  onClose?: () => void;
+}) {
   const [key, setKey] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [vault, setVault] = useState("");
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
-  async function save() {
+  useEffect(() => {
+    invoke<string | null>("get_vault_path").then((p) => p && setVault(p));
+  }, []);
+
+  async function saveKey() {
     if (!key.trim()) return;
-    setSaving(true);
+    setBusy(true);
     setErr(null);
     try {
       await invoke("set_api_key", { key });
-      onSaved();
+      setKey("");
+      onChanged(true);
+      setNote("API key saved.");
     } catch (e) {
       setErr(String(e));
     } finally {
-      setSaving(false);
+      setBusy(false);
+    }
+  }
+
+  async function saveVault() {
+    setBusy(true);
+    setErr(null);
+    try {
+      await invoke("set_vault_path", { path: vault });
+      setNote(vault.trim() ? "Vault connected." : "Vault disconnected.");
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -142,23 +194,53 @@ function Settings({ onSaved }: { onSaved: () => void }) {
       <div className="card">
         <h1>amber</h1>
         <p className="sub">
-          Paste your <strong>OpenRouter API key</strong>. Stored in the macOS
-          keychain — never written to disk or the vault.
+          {hasKey
+            ? "Settings — your key and vault."
+            : "Paste your OpenRouter API key to begin."}
         </p>
+
+        <label className="field-label">
+          OpenRouter API key{" "}
+          {hasKey && <span className="ok">● stored</span>}
+        </label>
         <input
           type="password"
           value={key}
-          autoFocus
+          autoFocus={!hasKey}
           onChange={(e) => setKey(e.currentTarget.value)}
-          placeholder="sk-or-v1-…"
-          onKeyDown={(e) => e.key === "Enter" && save()}
+          placeholder={hasKey ? "Paste a new key to replace…" : "sk-or-v1-…"}
+          onKeyDown={(e) => e.key === "Enter" && saveKey()}
         />
-        {err && <p className="errline">{err}</p>}
-        <button onClick={save} disabled={saving || !key.trim()}>
-          {saving ? "Saving…" : "Save key"}
+        <button onClick={saveKey} disabled={busy || !key.trim()}>
+          {hasKey ? "Replace key" : "Save key"}
         </button>
+
+        <div className="divider" />
+
+        <label className="field-label">Knowledge vault (folder path)</label>
+        <input
+          type="text"
+          value={vault}
+          onChange={(e) => setVault(e.currentTarget.value)}
+          placeholder="/Users/tucker/FOUNDRY"
+          onKeyDown={(e) => e.key === "Enter" && saveVault()}
+        />
+        <button className="secondary" onClick={saveVault} disabled={busy}>
+          {vault.trim() ? "Connect vault" : "Disconnect vault"}
+        </button>
+
+        {err && <p className="errline">{err}</p>}
+        {note && !err && <p className="noteline">{note}</p>}
+
+        {onClose && (
+          <button className="link" onClick={onClose}>
+            ← back to chat
+          </button>
+        )}
+
         <p className="hint">
-          Get one at openrouter.ai/keys — API key auth only, never a
+          Key is stored locally (app config, never the vault). Vault stays plain
+          markdown you own — Amber only reads it. API key auth only, never a
           subscription token.
         </p>
       </div>

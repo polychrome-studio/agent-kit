@@ -89,13 +89,14 @@ body {
 }
 .msg {
   display: flex;
+  flex-direction: column;
 }
 .msg.user {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 .msg.assistant,
 .msg.error {
-  justify-content: flex-start;
+  align-items: flex-start;
 }
 .bubble {
   max-width: 80%;
@@ -121,6 +122,31 @@ body {
   border: 1px solid #6b2a1d;
   color: #ffb4a2;
   font-size: 0.85rem;
+}
+
+/* ---- Source chips (vault grounding) ---- */
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  max-width: 80%;
+}
+.sources-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.chip {
+  font-size: 0.72rem;
+  color: var(--amber);
+  background: var(--amber-glow);
+  border: 1px solid var(--amber-deep);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* ---- Composer ---- */
@@ -215,6 +241,39 @@ body {
   opacity: 0.4;
   cursor: default;
 }
+.card button.secondary {
+  background: none;
+  border: 1px solid var(--amber-deep);
+  color: var(--amber);
+}
+.card button.link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  width: auto;
+  padding: 10px 0 0;
+  text-align: left;
+  font-weight: 400;
+}
+.card button.link:hover {
+  color: var(--text);
+}
+.field-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.field-label .ok {
+  color: #7bd88f;
+  font-size: 0.72rem;
+}
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 22px 0 18px;
+}
 .card .hint {
   color: var(--muted);
   font-size: 0.78rem;
@@ -224,5 +283,10 @@ body {
 .errline {
   color: #ffb4a2;
   font-size: 0.82rem;
-  margin: -4px 0 12px;
+  margin: 10px 0 0;
+}
+.noteline {
+  color: #7bd88f;
+  font-size: 0.82rem;
+  margin: 10px 0 0;
 }
