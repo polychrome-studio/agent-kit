@@ -18,6 +18,7 @@ type StreamEvent =
 
 function App() {
   const [hasKey, setHasKey] = useState<boolean | null>(null);
+  const [vaultPath, setVaultPath] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -25,11 +26,16 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  function refreshVault() {
+    invoke<string | null>("get_vault_path").then((p) => setVaultPath(p ?? null));
+  }
+
   useEffect(() => {
     invoke<boolean>("has_api_key").then((ok) => {
       setHasKey(ok);
       if (!ok) setShowSettings(true);
     });
+    refreshVault();
   }, []);
 
   useEffect(() => {
@@ -79,15 +85,33 @@ function App() {
       <Settings
         hasKey={hasKey}
         onChanged={(ok) => setHasKey(ok)}
-        onClose={hasKey ? () => setShowSettings(false) : undefined}
+        onVaultChanged={refreshVault}
+        onClose={
+          hasKey
+            ? () => {
+                refreshVault();
+                setShowSettings(false);
+              }
+            : undefined
+        }
       />
     );
   }
+
+  const vaultName = vaultPath?.split("/").filter(Boolean).pop();
 
   return (
     <main className="amber">
       <header className="topbar">
         <span className="brand">amber</span>
+        <button
+          className={`vault-status ${vaultPath ? "on" : "off"}`}
+          onClick={() => setShowSettings(true)}
+          title={vaultPath ?? "No vault connected — click to set one"}
+        >
+          <span className="dot" />
+          {vaultPath ? `vault: ${vaultName}` : "no vault"}
+        </button>
         <button className="ghost" onClick={() => setShowSettings(true)}>
           settings
         </button>
@@ -144,10 +168,12 @@ function App() {
 function Settings({
   hasKey,
   onChanged,
+  onVaultChanged,
   onClose,
 }: {
   hasKey: boolean;
   onChanged: (hasKey: boolean) => void;
+  onVaultChanged: () => void;
   onClose?: () => void;
 }) {
   const [key, setKey] = useState("");
@@ -181,6 +207,7 @@ function Settings({
     setErr(null);
     try {
       await invoke("set_vault_path", { path: vault });
+      onVaultChanged();
       setNote(vault.trim() ? "Vault connected." : "Vault disconnected.");
     } catch (e) {
       setErr(String(e));

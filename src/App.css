@@ -73,6 +73,39 @@ body {
   color: var(--text);
   border-color: var(--amber-deep);
 }
+.topbar .vault-status {
+  -webkit-app-region: no-drag;
+  margin-left: auto;
+  margin-right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.vault-status .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.vault-status.on {
+  color: var(--amber);
+  border-color: var(--amber-deep);
+}
+.vault-status.on .dot {
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
+}
+.vault-status.off {
+  color: var(--muted);
+}
+.vault-status.off .dot {
+  background: var(--muted);
+}
 
 /* ---- Thread ---- */
 .thread {
