@@ -1,16 +1,23 @@
 // Amber — Rust backend (Tauri commands).
-// M1: talk to a model via OpenRouter with streaming, API key in the OS keychain.
+// M1: talk to a model via OpenRouter with streaming.
 // AUTH RULE: API key only (OpenRouter). NEVER a consumer subscription OAuth token.
+//
+// Key storage (dev): a 0600 file in the app config dir, or the OPENROUTER_API_KEY
+// env var. We avoided the macOS keychain here because an unsigned `tauri dev`
+// binary changes identity every rebuild, so the keychain re-prompts forever.
+// Release builds (code-signed, stable identity) can move this back to the keychain.
 
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::PathBuf;
 use tauri::ipc::Channel;
+use tauri::{AppHandle, Manager};
 
 const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 // Hardcoded for M1 — cheap + always-valid OpenRouter slug. M4 makes this dynamic (task routing).
 const MODEL: &str = "anthropic/claude-3.5-haiku";
-const KEYRING_SERVICE: &str = "amber";
-const KEYRING_ACCOUNT: &str = "openrouter";
+const KEY_FILE: &str = "openrouter.key";
 
 #[derive(Serialize, Deserialize, Clone)]
 struct ChatMessage {
@@ -28,45 +35,68 @@ enum StreamEvent {
     Error(String),
 }
 
-fn entry() -> Result<keyring::Entry, String> {
-    keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT).map_err(|e| e.to_string())
+fn key_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join(KEY_FILE))
 }
 
-/// Store the OpenRouter API key in the OS keychain. Never written to the vault or disk.
+/// Resolve the API key: OPENROUTER_API_KEY env var wins, else the stored file.
+fn read_key(app: &AppHandle) -> Option<String> {
+    if let Ok(k) = std::env::var("OPENROUTER_API_KEY") {
+        let k = k.trim().to_string();
+        if !k.is_empty() {
+            return Some(k);
+        }
+    }
+    let k = fs::read_to_string(key_path(app).ok()?).ok()?;
+    let k = k.trim().to_string();
+    (!k.is_empty()).then_some(k)
+}
+
+/// Store the OpenRouter API key as a 0600 file in the app config dir. Never in the vault.
 #[tauri::command]
-fn set_api_key(key: String) -> Result<(), String> {
+fn set_api_key(app: AppHandle, key: String) -> Result<(), String> {
     let key = key.trim();
     if key.is_empty() {
         return Err("API key is empty.".into());
     }
-    entry()?.set_password(key).map_err(|e| e.to_string())
-}
-
-/// True if a key is present in the keychain.
-#[tauri::command]
-fn has_api_key() -> bool {
-    entry()
-        .and_then(|e| e.get_password().map_err(|x| x.to_string()))
-        .is_ok()
-}
-
-/// Remove the stored key (Settings → forget key).
-#[tauri::command]
-fn clear_api_key() -> Result<(), String> {
-    let e = entry()?;
-    match e.delete_credential() {
-        Ok(()) => Ok(()),
-        Err(keyring::Error::NoEntry) => Ok(()),
-        Err(err) => Err(err.to_string()),
+    let path = key_path(&app)?;
+    fs::write(&path, key).map_err(|e| e.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&path).map_err(|e| e.to_string())?.permissions();
+        perms.set_mode(0o600);
+        fs::set_permissions(&path, perms).map_err(|e| e.to_string())?;
     }
+    Ok(())
+}
+
+/// True if a key is available (env var or stored file).
+#[tauri::command]
+fn has_api_key(app: AppHandle) -> bool {
+    read_key(&app).is_some()
+}
+
+/// Remove the stored key file (Settings → forget key). Does not touch the env var.
+#[tauri::command]
+fn clear_api_key(app: AppHandle) -> Result<(), String> {
+    let path = key_path(&app)?;
+    if path.exists() {
+        fs::remove_file(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 /// Stream a chat completion from OpenRouter. Tokens arrive on `on_event` as they generate.
 #[tauri::command]
-async fn chat(messages: Vec<ChatMessage>, on_event: Channel<StreamEvent>) -> Result<(), String> {
-    let api_key = entry()?
-        .get_password()
-        .map_err(|_| "No API key set. Add it in Settings.".to_string())?;
+async fn chat(
+    app: AppHandle,
+    messages: Vec<ChatMessage>,
+    on_event: Channel<StreamEvent>,
+) -> Result<(), String> {
+    let api_key = read_key(&app).ok_or("No API key set. Add it in Settings.")?;
 
     let body = serde_json::json!({
         "model": MODEL,
