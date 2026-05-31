@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::ipc::Channel;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 // Hardcoded for M1 — cheap + always-valid OpenRouter slug. M4 makes this dynamic (task routing).
@@ -226,11 +226,51 @@ async fn chat(
     Ok(())
 }
 
+/// Show/hide the command-bar window. The global shortcut and the menubar both
+/// route here. Showing also re-focuses and tells the palette UI to reset (one-shot
+/// grammar — every summon is a fresh query, see M3 in docs/build-plan.md).
+fn toggle_palette(app: &AppHandle) {
+    let Some(win) = app.get_webview_window("palette") else {
+        return;
+    };
+    if win.is_visible().unwrap_or(false) {
+        let _ = win.hide();
+    } else {
+        let _ = win.show();
+        let _ = win.set_focus();
+        let _ = win.emit("palette:show", ());
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    use tauri_plugin_global_shortcut::ShortcutState;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    // Toggle on key-down only; the plugin also fires on release.
+                    if event.state == ShortcutState::Pressed {
+                        toggle_palette(app);
+                    }
+                })
+                .build(),
+        )
+        .setup(|app| {
+            use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+            // Option+Space summons the command bar (Tucker's pick; double-tap
+            // right-Shift isn't reachable via the global-shortcut plugin — see
+            // knowledge/wiki/roadmap.md). A registration conflict is non-fatal:
+            // log and keep running so the app still launches.
+            let hotkey = Shortcut::new(Some(Modifiers::ALT), Code::Space);
+            if let Err(e) = app.global_shortcut().register(hotkey) {
+                eprintln!("Amber: could not register Option+Space hotkey: {e}");
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             set_api_key,
             has_api_key,

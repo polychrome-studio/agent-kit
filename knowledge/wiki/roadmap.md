@@ -12,8 +12,8 @@ related: [[build-status]]
 "At some point we should…" — ideas surfaced during build sessions that aren't scheduled yet. Not commitments. When one graduates into active work, it moves to [[build-status]] and gets a journal entry. Append freely; don't delete (strike through with a note if dropped).
 
 ## Near-term (next few milestones)
-- **M3 — command bar** (next): global hotkey → borderless always-on-top window. Componentize `App.tsx` for multi-window.
-- **M4 — task routing**: classify the task, pick model tier; surface which model answered (small label) for trust + cost awareness.
+- ~~**M3 — command bar**: global hotkey → borderless always-on-top window. Componentize `App.tsx` for multi-window.~~ → implemented 2026-05-31, see [[build-status]] + [[journal/2026-05-31-m3-command-bar]].
+- **M4 — task routing** (next): classify the task, pick model tier; surface which model answered (small label) for trust + cost awareness.
 - **M5 — rituals**: port FOUNDRY rituals — morning briefing (`/today`-style), journaling, capture-to-vault — with write-back ("two outputs" rule).
 
 ## Deferred capabilities
@@ -24,7 +24,9 @@ related: [[build-status]]
 - **Windows build** — Tauri is cross-platform; free-ish later.
 
 ## UX / polish parking lot
+- **Custom hotkey: double-tap right Shift** — Tucker's actual ask for summoning the command bar. Not reachable via `tauri-plugin-global-shortcut` (combinations only; no modifier-only, no left/right-side, no double-tap). Would need a macOS `CGEventTap`/`rdev`-style global key monitor + an Accessibility-permission prompt. Currently Option+Space. Revisit alongside a user-configurable-hotkey setting.
 - Markdown rendering in the chat panel (currently plain text / pre-wrap).
+- Command-bar palette auto-grow with the answer (fixed 480px today); needs window-resize permission.
 - Conversation history persistence + multiple threads.
 - Design polish pass — the real "much better looking" ember-glow goal.
 - Read-order heuristic for retrieval: if the vault has a handoff/journal convention, read the most recent handoff first (per `docs/knowledge-layer.md`).

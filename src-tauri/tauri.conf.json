@@ -10,11 +10,27 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
+        "label": "main",
         "title": "Amber",
         "width": 800,
         "height": 600
+      },
+      {
+        "label": "palette",
+        "title": "Amber Command Bar",
+        "width": 720,
+        "height": 480,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "center": true,
+        "visible": false,
+        "focus": false
       }
     ],
     "security": {

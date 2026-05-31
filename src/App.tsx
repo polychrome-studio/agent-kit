@@ -1,21 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Channel, invoke } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { streamChat, type Message } from "./lib/chat";
 import "./App.css";
-
-type Role = "user" | "assistant" | "system";
-interface Message {
-  role: Role;
-  content: string;
-  sources?: string[];
-}
-
-// Mirrors the Rust StreamEvent enum (serde lowercase tag/content).
-type StreamEvent =
-  | { type: "sources"; data: string[] }
-  | { type: "token"; data: string }
-  | { type: "done" }
-  | { type: "error"; data: string };
 
 function App() {
   const [hasKey, setHasKey] = useState<boolean | null>(null);
@@ -53,23 +40,20 @@ function App() {
     setMessages([...next, { role: "assistant", content: "" }]);
     setStreaming(true);
 
-    const onEvent = new Channel<StreamEvent>();
-    onEvent.onmessage = (ev) => {
+    // Patch the last (assistant) message as tokens/sources stream in.
+    const patchLast = (fn: (last: Message) => Message) =>
       setMessages((m) => {
         const copy = [...m];
-        const last = copy[copy.length - 1];
-        if (ev.type === "token") {
-          copy[copy.length - 1] = { ...last, content: last.content + ev.data };
-        } else if (ev.type === "sources") {
-          copy[copy.length - 1] = { ...last, sources: ev.data };
-        }
+        copy[copy.length - 1] = fn(copy[copy.length - 1]);
         return copy;
       });
-      if (ev.type === "error") setError(ev.data);
-    };
 
     try {
-      await invoke("chat", { messages: next, onEvent });
+      await streamChat(next, {
+        onToken: (t) => patchLast((last) => ({ ...last, content: last.content + t })),
+        onSources: (s) => patchLast((last) => ({ ...last, sources: s })),
+        onError: (e) => setError(e),
+      });
     } catch (e) {
       setError(String(e));
     } finally {
