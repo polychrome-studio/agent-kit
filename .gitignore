@@ -45,3 +45,6 @@ desktop.ini
 *.dmg
 .cache/
 coverage/
+
+# journal breadcrumb hook state
+knowledge/journal/.last-breadcrumb

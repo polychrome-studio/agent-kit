@@ -44,3 +44,7 @@ This session also closed out an M2 UX gap that surfaced when Tucker first tested
 ## Related
 - Touched articles: [[knowledge-layer]], [[vault-retrieval]], [[architecture]], [[build-status]], [[glossary]], [[roadmap]]
 - Pattern source: `/Users/tucker/Code/cosi/cosi-platform/knowledge/` (code-side layer); FOUNDRY's knowledge layer (the original)
+
+## Addendum — continuous-journaling automation
+
+Tucker flagged that journaling only at session end risks losing information (forgotten, compressed away, or lost to a crash). Revised **Rule 1** to *journal continuously* — append after each larger move / longer run / commit, not at the end. Built a **commit-triggered breadcrumb hook** (`.claude/hooks/journal-breadcrumb.sh`, PostToolUse on Bash): when `git commit` advances HEAD it auto-appends a crash-proof breadcrumb (time, hash, subject, files) to today's journal and nudges the agent to add the *why* while fresh. HEAD-comparison guard means blocked/failed commits never breadcrumb and there's no double-write. The commit is the "larger move" marker. Chosen over a nudge-only or a blocking Stop-hook variant — breadcrumb+nudge gives crash-survival with minimal flow interruption.

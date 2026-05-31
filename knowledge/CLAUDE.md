@@ -37,8 +37,19 @@ knowledge/
 
 ## The three rules — no more
 
-### Rule 1 — Journal during, wiki at the end
-During a session: write liberally to `journal/` and `decisions/`. Both are append-only — nothing edits prior entries. At session end: an **explicit compile pass** promotes mature journal entries into wiki updates. Without an explicit trigger, the wiki stays untouched. Keeps the wiki intentional, keeps noise out of active builds, keeps the prompt cache stable.
+### Rule 1 — Journal *continuously*, wiki at the end
+
+The journal is the firehose — write to it **as you go, not at session end.** Batching journal writes to the end loses information: you forget, you compress it away, or the session crashes and it's gone. The journal must survive a crash at any point.
+
+**Checkpoint cadence — append to today's `journal/YYYY-MM-DD-slug.md` after any of these, while it's fresh:**
+- a larger move lands (a feature works, a subsystem changes, a milestone closes)
+- a longer code run completes (a big edit pass, a refactor, a tricky debug)
+- **right after each `git commit`** — the commit is the natural "larger move" marker; journal the *why* the commit message doesn't capture
+- before any risky/irreversible operation (so intent is recorded even if it goes wrong)
+
+Don't wait for a tidy moment. A rough running entry beats a perfect one that never gets written. The entry is append-only — keep adding sections as the session progresses.
+
+**Wiki, by contrast, is end-of-session only.** At session end an **explicit compile pass** promotes mature journal entries into wiki updates (per Rule 2). Without an explicit trigger the wiki stays untouched — that's what keeps it intentional, keeps noise out of active builds, and keeps the prompt cache stable. So: *journal hot and often, compile to wiki cold and deliberately.*
 
 ### Rule 2 — Wiki updates require a real trigger — only three
 1. A new capability/subsystem got added → write a new article or new section.
