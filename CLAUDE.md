@@ -3,6 +3,8 @@
 Amber is a **Mac desktop AI second-brain / personal assistant** — a Raycast-style command bar with a markdown knowledge vault as its background memory. It's Tucker's build (Head of Creative Technology at Collier Simon). This file is the canonical context for any agent working in this repo. Read it fully before doing anything.
 
 > **If you're a fresh session: read this file, then read `KICKOFF.md` for exactly what to do first. The deeper rationale lives in `docs/`.**
+>
+> **Build history, decisions, and the current state of the build live in `knowledge/` — read `knowledge/CLAUDE.md` to see what's been built and why before doing architectural work. (`docs/` = the seeded plan; `knowledge/` = what we actually did.)**
 
 ---
 
