@@ -307,6 +307,20 @@ body {
   background: var(--line);
   margin: 22px 0 18px;
 }
+.field-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.field-row input {
+  flex: 1;
+  margin-bottom: 0;
+}
+.card button.browse {
+  width: auto;
+  white-space: nowrap;
+  padding: 0 16px;
+}
 .card .hint {
   color: var(--muted);
   font-size: 0.78rem;

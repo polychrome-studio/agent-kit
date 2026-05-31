@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import "./App.css";
 
 type Role = "user" | "assistant" | "system";
@@ -202,17 +203,25 @@ function Settings({
     }
   }
 
-  async function saveVault() {
+  async function saveVault(path = vault) {
     setBusy(true);
     setErr(null);
     try {
-      await invoke("set_vault_path", { path: vault });
+      await invoke("set_vault_path", { path });
+      setVault(path);
       onVaultChanged();
-      setNote(vault.trim() ? "Vault connected." : "Vault disconnected.");
+      setNote(path.trim() ? "Vault connected." : "Vault disconnected.");
     } catch (e) {
       setErr(String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function browse() {
+    const picked = await open({ directory: true, multiple: false });
+    if (typeof picked === "string") {
+      await saveVault(picked); // chosen folder is valid — connect immediately
     }
   }
 
@@ -244,15 +253,20 @@ function Settings({
 
         <div className="divider" />
 
-        <label className="field-label">Knowledge vault (folder path)</label>
-        <input
-          type="text"
-          value={vault}
-          onChange={(e) => setVault(e.currentTarget.value)}
-          placeholder="/Users/tucker/FOUNDRY"
-          onKeyDown={(e) => e.key === "Enter" && saveVault()}
-        />
-        <button className="secondary" onClick={saveVault} disabled={busy}>
+        <label className="field-label">Knowledge vault (folder)</label>
+        <div className="field-row">
+          <input
+            type="text"
+            value={vault}
+            onChange={(e) => setVault(e.currentTarget.value)}
+            placeholder="/Users/tucker/FOUNDRY"
+            onKeyDown={(e) => e.key === "Enter" && saveVault()}
+          />
+          <button className="secondary browse" onClick={browse} disabled={busy}>
+            Browse…
+          </button>
+        </div>
+        <button className="secondary" onClick={() => saveVault()} disabled={busy}>
           {vault.trim() ? "Connect vault" : "Disconnect vault"}
         </button>
 
