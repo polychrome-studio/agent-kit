@@ -74,5 +74,35 @@ first multi-window work, so it forced the single `App.tsx` to be componentized.
       later (needs window-resize permission). Parked.
 - [ ] Hotkey should become user-configurable (Settings) eventually — hardcoded for now.
 
+## Follow-on (same session) — persona + model tuning, after M3 live-verified
+M3 worked live (Tucker confirmed). But the *first answer* felt robotic / vault-first /
+over-citing. Root cause was two things, not one:
+- **Model:** default was `anthropic/claude-3.5-haiku` (the M1 placeholder) — too small/literal
+  to weave knowledge in like a companion. Bumped default to **`anthropic/claude-sonnet-4.6`**
+  (`lib.rs`). Confirmed live OpenRouter slugs + pricing first; M4's router will reclaim the
+  cheap tier for trivial tasks. Sonnet is the conversational sweet spot.
+- **Prompt:** `vault.rs::system_prompt` literally said "Answer using the CONTEXT… cite the note
+  filename(s)." That *is* a retrieval bot. Rewrote it to a **companion frame**: the notes are
+  Amber's *memory of Tucker*, not documents to quote; never say "according to your vault," never
+  cite filenames unless asked; warm, direct, sentences-not-paragraphs; weave in what he has in
+  flight and offer to go deeper. Result was night-and-day (the "you've got three dogs — Nova's
+  the chaos agent… what did you want to dig into?" reply). Tucker: "much much better."
+
+### Product direction surfaced (parked to [[roadmap]], not built)
+- **Mode is the primitive.** Tone, model tier, and source-chip visibility are all outputs of
+  one "what kind of work is this" classification — which M4's task router already computes.
+  Research mode → straight + cite + sources visible; thought-partner → companion + hidden. Build
+  *mode*, not three separate settings.
+- **User-definable personality** (ChatGPT-Personalization-style) — but per-mode, not one global
+  slider. Generalizes the now-single hardcoded persona prompt.
+- **Curated model selection, never free choice** — Tucker: "if I give people full choice they
+  will always go for the biggest most expensive." Harness picks the *tier*; user picks intent
+  ("fast"/"deep") from a curated shortlist; admin holds the ceiling + a token budget. The M4
+  cost lever with a human face. Feeds cosi-platform's cost governance.
+
 ## Related
 - Touched articles: [[build-status]], [[roadmap]]
+
+### 15:34 — 77db663
+M3: command bar — global hotkey, floating palette window, shared chat lib
+files: knowledge/journal/2026-05-31-m3-command-bar.md, knowledge/wiki/build-status.md, knowledge/wiki/roadmap.md, src-tauri/Cargo.lock, src-tauri/Cargo.toml, src-tauri/capabilities/palette.json, src-tauri/src/lib.rs, src-tauri/tauri.conf.json, src/App.css, src/App.tsx, src/CommandBar.tsx, src/lib/chat.ts, +1 more

@@ -14,6 +14,7 @@ related: [[build-status]]
 ## Near-term (next few milestones)
 - ~~**M3 — command bar**: global hotkey → borderless always-on-top window. Componentize `App.tsx` for multi-window.~~ → implemented 2026-05-31, see [[build-status]] + [[journal/2026-05-31-m3-command-bar]].
 - **M4 — task routing** (next): classify the task, pick model tier; surface which model answered (small label) for trust + cost awareness.
+  - **Mode is the primitive (refined design, 2026-05-31).** The task classifier shouldn't only pick a *model* — it should output a **mode** that drives three knobs at once: (1) model tier, (2) voice/tone register, (3) source-chip visibility. *Research* mode → straight + pragmatic, sources shown, may explicitly name the vault, capable-but-not-precious model. *Thought-partner / assistant* mode → companion voice (the M2-persona tuning), sources hidden, warmer. Don't build tone, model, and chips as three separate settings — derive them from one classification. User can override the inferred mode.
 - **M5 — rituals**: port FOUNDRY rituals — morning briefing (`/today`-style), journaling, capture-to-vault — with write-back ("two outputs" rule).
 
 ## Deferred capabilities
@@ -23,8 +24,13 @@ related: [[build-status]]
 - **Keychain key storage** — at release, once the app is code-signed.
 - **Windows build** — Tauri is cross-platform; free-ish later.
 
+## Personalization & control (post-M4, surfaced 2026-05-31)
+- **User-definable personality / tone.** Common + expected (cf. ChatGPT Personalization: base style + characteristics + custom instructions). Amber should let the user shape Amber's voice — *but* the lever is per-**mode** (see M4 "mode is the primitive"), not one global slider: research wants pragmatic/straight, a thought-partner wants companion. Inferred from task type, user-overridable. The M2 persona prompt (`vault.rs::system_prompt`) is the current single hardcoded voice — this generalizes it.
+- **Curated model selection with guardrails — NOT free choice.** Tucker's key insight: *"if I give people full choice they will always go for the biggest most expensive."* So: the **harness decides the tier** the task needs; the user only picks from a **short curated shortlist within that tier**, framed as intent ("fast" vs "deep"), never as raw model names. Admin holds the ceiling + (eventually) a **per-user token budget / limit** as a control surface. This is the M4 cost lever with a human-friendly face. Directly relevant to cosi-platform (multi-user, cost governance) — Amber is the proving ground.
+
 ## UX / polish parking lot
 - **Custom hotkey: double-tap right Shift** — Tucker's actual ask for summoning the command bar. Not reachable via `tauri-plugin-global-shortcut` (combinations only; no modifier-only, no left/right-side, no double-tap). Would need a macOS `CGEventTap`/`rdev`-style global key monitor + an Accessibility-permission prompt. Currently Option+Space. Revisit alongside a user-configurable-hotkey setting.
+- **Source chips visibility should follow mode** — currently always shown ("GROUNDED IN" + full paths). Tucker: "I don't need to see that it's pulling this from the vault." Hide in companion/thought-partner mode, show in research mode (ties to M4 "mode is the primitive").
 - Markdown rendering in the chat panel (currently plain text / pre-wrap).
 - Command-bar palette auto-grow with the answer (fixed 480px today); needs window-resize permission.
 - Conversation history persistence + multiple threads.

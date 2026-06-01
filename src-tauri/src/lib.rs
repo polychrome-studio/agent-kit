@@ -17,8 +17,10 @@ use tauri::ipc::Channel;
 use tauri::{AppHandle, Emitter, Manager};
 
 const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
-// Hardcoded for M1 — cheap + always-valid OpenRouter slug. M4 makes this dynamic (task routing).
-const MODEL: &str = "anthropic/claude-3.5-haiku";
+// Default model. Sonnet 4.6 is the "companion" sweet spot — warm + smart enough to
+// weave the vault in naturally rather than recite it (3.5-haiku felt robotic). Still
+// hardcoded; M4 makes this dynamic (task routing: cheap for trivial, frontier when earned).
+const MODEL: &str = "anthropic/claude-sonnet-4.6";
 const KEY_FILE: &str = "openrouter.key";
 const VAULT_FILE: &str = "vault.path";
 
