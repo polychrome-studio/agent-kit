@@ -69,3 +69,7 @@ ONE classification. So the unit of routing is a **mode**, not just a model.
 
 ## Related
 - Touched articles: [[build-status]], [[roadmap]], [[vault-retrieval]]
+
+### 20:56 — 35624a1
+M4: task routing — mode-driven model + voice + source chips
+files: knowledge/journal/2026-05-31-m3-command-bar.md, knowledge/journal/2026-05-31-m4-task-routing.md, knowledge/wiki/build-status.md, knowledge/wiki/roadmap.md, src-tauri/src/lib.rs, src-tauri/src/router.rs, src-tauri/src/vault.rs, src/App.css, src/App.tsx, src/CommandBar.tsx, src/lib/chat.ts
