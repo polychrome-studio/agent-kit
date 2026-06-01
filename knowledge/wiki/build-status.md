@@ -16,7 +16,7 @@ The milestones (from `docs/build-plan.md`) are ordered so each de-risks the next
 | **M0 — Scaffold + repo** | the toolchain works end to end | ✅ done (2026-05-29) |
 | **M1 — Talk to a model** | model wiring + streaming + key handling | ✅ done (2026-05-29) |
 | **M2 — Read the vault** | the knowledge layer — answers from *your* brain | ✅ done (2026-05-29 → 31) |
-| **M3 — Command bar** | the signature global-hotkey invocation UX | 🟡 implemented (2026-05-31) — pending live confirm |
+| **M3 — Command bar** | the signature global-hotkey invocation UX | ✅ done (2026-05-31) — verified live |
 | **M4 — Task routing** | the cost lever — cheap vs frontier by task | ⬜ |
 | **M5 — Rituals** | the FOUNDRY-specific differentiation | ⬜ ongoing |
 
@@ -30,7 +30,7 @@ The milestones (from `docs/build-plan.md`) are ordered so each de-risks the next
 
 Option+Space (global shortcut, registered in Rust) toggles a second `palette` window: borderless, transparent, always-on-top, config-defined + hidden at startup so the summon is instant. Type → reuses the M2 `chat` command → answer streams in the bar grounded in the vault; Esc or blur dismisses. Ephemeral one-shot (no shared thread). Both windows load one Vite bundle, routed by `getCurrentWindow().label` in `src/main.tsx`; chat plumbing was extracted to `src/lib/chat.ts` and shared. Full rationale + the two open threads: [[journal/2026-05-31-m3-command-bar]].
 
-**Pending:** live GUI confirm by Tucker (headless can't press a global hotkey). Boots clean — no panic, hotkey registers, both windows construct.
+**Verified live** by Tucker (2026-05-31): Option+Space → bar → streamed answer → Esc. Persona/model were then tuned (companion voice + Sonnet 4.6 default) — see [[journal/2026-05-31-m3-command-bar]] "Follow-on".
 
 ### M3 caveats / deferred
 - **Hotkey** is hardcoded Option+Space. Double-tap-right-Shift was requested but isn't reachable via the global-shortcut plugin (needs a `CGEventTap` + Accessibility) → parked on [[roadmap]]. User-configurable hotkey is a later add.

@@ -106,3 +106,7 @@ over-citing. Root cause was two things, not one:
 ### 15:34 — 77db663
 M3: command bar — global hotkey, floating palette window, shared chat lib
 files: knowledge/journal/2026-05-31-m3-command-bar.md, knowledge/wiki/build-status.md, knowledge/wiki/roadmap.md, src-tauri/Cargo.lock, src-tauri/Cargo.toml, src-tauri/capabilities/palette.json, src-tauri/src/lib.rs, src-tauri/tauri.conf.json, src/App.css, src/App.tsx, src/CommandBar.tsx, src/lib/chat.ts, +1 more
+
+### 20:30 — 2c70fa9
+Persona + model tuning: companion voice, default to Sonnet 4.6
+files: knowledge/journal/2026-05-31-m3-command-bar.md, knowledge/wiki/roadmap.md, src-tauri/src/lib.rs, src-tauri/src/vault.rs
