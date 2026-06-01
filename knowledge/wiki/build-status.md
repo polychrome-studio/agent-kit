@@ -17,7 +17,7 @@ The milestones (from `docs/build-plan.md`) are ordered so each de-risks the next
 | **M1 — Talk to a model** | model wiring + streaming + key handling | ✅ done (2026-05-29) |
 | **M2 — Read the vault** | the knowledge layer — answers from *your* brain | ✅ done (2026-05-29 → 31) |
 | **M3 — Command bar** | the signature global-hotkey invocation UX | ✅ done (2026-05-31) — verified live |
-| **M4 — Task routing** | the cost lever — cheap vs frontier by task | ⬜ |
+| **M4 — Task routing** | the cost lever — cheap vs frontier by task | 🟡 implemented (2026-05-31) — pending live confirm |
 | **M5 — Rituals** | the FOUNDRY-specific differentiation | ⬜ ongoing |
 
 ## Done — detail
@@ -36,9 +36,15 @@ Option+Space (global shortcut, registered in Rust) toggles a second `palette` wi
 - **Hotkey** is hardcoded Option+Space. Double-tap-right-Shift was requested but isn't reachable via the global-shortcut plugin (needs a `CGEventTap` + Accessibility) → parked on [[roadmap]]. User-configurable hotkey is a later add.
 - **Palette** is fixed-height (480px, internal scroll) — auto-grow with the answer is parked.
 
+## M4 (task routing) — implemented, how it's shaped
+
+"Mode is the primitive": one classification per turn drives model + voice + source-chip visibility. `src-tauri/src/router.rs` — `Mode { Quick, Companion, Research }` → `claude-haiku-4.5 / claude-sonnet-4.6 / claude-opus-4.8`. **Hybrid classifier:** instant heuristics for obvious cases (hot path stays snappy), a cheap `claude-3.5-haiku` tie-break only for long unsignalled queries. `chat` emits a `Meta { mode, model }` event → both surfaces show a "✦ sonnet 4.6 · companion" label; `Sources` chips emit only in research mode. Persona moved from `vault.rs` into `Mode::persona()`. Full rationale: [[journal/2026-05-31-m4-task-routing]].
+
+**Pending:** live confirm by Tucker (route a format task / a question / a "what do my notes say…" and watch the label + chips change).
+
 ## Hardcoded / deferred (revisit at the named milestone)
 
-- **Model** is hardcoded `anthropic/claude-3.5-haiku` → made dynamic at **M4**.
+- ~~**Model** is hardcoded `anthropic/claude-3.5-haiku` → made dynamic at **M4**.~~ ✅ done — task-routed by mode (M4).
 - **Keychain** key storage → returns at **release** (code-signed build).
 - **Vault write-back** ("every task produces two outputs") → **M5**, opt-in.
 - **Vector search** → only if the vault outgrows index+grep.

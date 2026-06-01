@@ -13,8 +13,8 @@ related: [[build-status]]
 
 ## Near-term (next few milestones)
 - ~~**M3 — command bar**: global hotkey → borderless always-on-top window. Componentize `App.tsx` for multi-window.~~ → implemented 2026-05-31, see [[build-status]] + [[journal/2026-05-31-m3-command-bar]].
-- **M4 — task routing** (next): classify the task, pick model tier; surface which model answered (small label) for trust + cost awareness.
-  - **Mode is the primitive (refined design, 2026-05-31).** The task classifier shouldn't only pick a *model* — it should output a **mode** that drives three knobs at once: (1) model tier, (2) voice/tone register, (3) source-chip visibility. *Research* mode → straight + pragmatic, sources shown, may explicitly name the vault, capable-but-not-precious model. *Thought-partner / assistant* mode → companion voice (the M2-persona tuning), sources hidden, warmer. Don't build tone, model, and chips as three separate settings — derive them from one classification. User can override the inferred mode.
+- ~~**M4 — task routing**: classify the task, pick model tier; surface which model answered.~~ → implemented 2026-05-31 (hybrid classifier, `Mode{Quick,Companion,Research}` driving model+voice+chips). See [[build-status]] + [[journal/2026-05-31-m4-task-routing]]. The "mode is the primitive" design below is now built; what remains parked is the *user-facing* control (override mode, curated model picker, token budget) under "Personalization & control".
+  - **Mode is the primitive (built 2026-05-31).** The classifier outputs a **mode** that drives three knobs at once: model tier, voice/tone register, source-chip visibility. *Research* → straight + pragmatic, sources shown, Opus. *Companion* → the tuned companion voice, sources hidden, Sonnet. *Quick* → terse, no vault, Haiku. Still open: letting the user *override* the inferred mode (see Personalization & control).
 - **M5 — rituals**: port FOUNDRY rituals — morning briefing (`/today`-style), journaling, capture-to-vault — with write-back ("two outputs" rule).
 
 ## Deferred capabilities

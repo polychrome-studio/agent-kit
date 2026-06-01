@@ -175,26 +175,14 @@ pub fn build_context(vault: &Path, query: &str) -> VaultContext {
     VaultContext { index, notes }
 }
 
-/// Compose the system message that grounds the model in the vault context.
-/// Returns None when there's nothing to inject (chat falls back to model-only).
-pub fn system_prompt(ctx: &VaultContext) -> Option<String> {
+/// Format the vault context (index + notes) to append after a persona preamble.
+/// Returns None when there's nothing to inject. The persona/voice lives in
+/// `router::Mode::persona` now (M4) — this is just the knowledge block.
+pub fn context_block(ctx: &VaultContext) -> Option<String> {
     if ctx.is_empty() {
         return None;
     }
-    let mut s = String::from(
-        "You are Amber — Tucker's second brain and companion, not a search engine over his files.\n\n\
-         The notes below are YOUR MEMORY of Tucker and his world: things he's written, decided, \
-         and been working on. Treat them as what you already know about him — not as documents to \
-         quote. Never say \"according to your vault,\" never cite filenames, never announce that \
-         you looked something up. You just know it. Only name where something came from if he \
-         explicitly asks.\n\n\
-         Voice: a sharp friend who's been paying attention. Warm, direct, concise — sentences, not \
-         paragraphs. No preamble, lead with the answer. Use what you know to make the reply \
-         personal — weave in what he already knows or has in flight, anticipate his next move, and \
-         offer to go deeper instead of dumping everything at once. If your memory doesn't cover the \
-         question, just answer naturally from what you know; no need to flag it as \"outside the \
-         vault\" unless it actually matters.\n\n",
-    );
+    let mut s = String::new();
     if let Some(index) = &ctx.index {
         s.push_str("# What you remember about Tucker's world (the map)\n");
         s.push_str(index);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { streamChat } from "./lib/chat";
+import { streamChat, prettyModel, type Meta } from "./lib/chat";
 
 // The floating, borderless, always-on-top command bar (M3). Summoned by the
 // global Option+Space shortcut (registered in Rust). Ephemeral one-shot grammar:
@@ -9,6 +9,7 @@ export default function CommandBar() {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<string[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -18,6 +19,7 @@ export default function CommandBar() {
     setQuery("");
     setAnswer("");
     setSources([]);
+    setMeta(null);
     setError(null);
     setStreaming(false);
   }
@@ -45,9 +47,11 @@ export default function CommandBar() {
     setError(null);
     setAnswer("");
     setSources([]);
+    setMeta(null);
     setStreaming(true);
     try {
       await streamChat([{ role: "user", content: text }], {
+        onMeta: (m) => setMeta(m),
         onToken: (t) => setAnswer((a) => a + t),
         onSources: (s) => setSources(s),
         onError: (e) => setError(e),
@@ -59,7 +63,7 @@ export default function CommandBar() {
     }
   }
 
-  const hasOutput = answer || streaming || error || sources.length > 0;
+  const hasOutput = answer || streaming || error || sources.length > 0 || meta;
 
   return (
     <div
@@ -93,6 +97,11 @@ export default function CommandBar() {
           ) : (
             <div className="palette-answer">
               {answer || (streaming ? "▍" : "")}
+            </div>
+          )}
+          {meta && !error && (
+            <div className="model-label" title="task-routed model (M4)">
+              ✦ {prettyModel(meta.model)} · {meta.mode}
             </div>
           )}
           {sources.length > 0 && (

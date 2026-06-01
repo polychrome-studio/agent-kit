@@ -7,6 +7,7 @@
 // binary changes identity every rebuild, so the keychain re-prompts forever.
 // Release builds (code-signed, stable identity) can move this back to the keychain.
 
+mod router;
 mod vault;
 
 use futures_util::StreamExt;
@@ -17,10 +18,6 @@ use tauri::ipc::Channel;
 use tauri::{AppHandle, Emitter, Manager};
 
 const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
-// Default model. Sonnet 4.6 is the "companion" sweet spot — warm + smart enough to
-// weave the vault in naturally rather than recite it (3.5-haiku felt robotic). Still
-// hardcoded; M4 makes this dynamic (task routing: cheap for trivial, frontier when earned).
-const MODEL: &str = "anthropic/claude-sonnet-4.6";
 const KEY_FILE: &str = "openrouter.key";
 const VAULT_FILE: &str = "vault.path";
 
@@ -35,7 +32,9 @@ struct ChatMessage {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "lowercase", tag = "type", content = "data")]
 enum StreamEvent {
-    /// Vault notes that grounded this answer (sent once, before tokens).
+    /// Which mode + model handled this turn (sent first, for the UI's trust/cost label).
+    Meta { mode: String, model: String },
+    /// Vault notes that grounded this answer — only sent in modes that show sources.
     Sources(Vec<String>),
     Token(String),
     Done,
@@ -144,30 +143,48 @@ async fn chat(
 ) -> Result<(), String> {
     let api_key = read_key(&app).ok_or("No API key set. Add it in Settings.")?;
 
-    // Ground the answer in the vault (if one is configured) by prepending a
-    // system message built from the index + the notes most relevant to the
-    // latest user turn. Emits a Sources event so the UI can show what was used.
-    let mut payload: Vec<serde_json::Value> = Vec::new();
-    if let Some(v) = vault_path(&app) {
-        let query = messages
-            .iter()
-            .rev()
-            .find(|m| m.role == "user")
-            .map(|m| m.content.as_str())
-            .unwrap_or("");
-        let ctx = vault::build_context(&v, query);
-        if let Some(system) = vault::system_prompt(&ctx) {
-            let sources: Vec<String> = ctx.notes.iter().map(|n| n.path.clone()).collect();
-            let _ = on_event.send(StreamEvent::Sources(sources));
-            payload.push(serde_json::json!({ "role": "system", "content": system }));
+    let query = messages
+        .iter()
+        .rev()
+        .find(|m| m.role == "user")
+        .map(|m| m.content.as_str())
+        .unwrap_or("");
+
+    // Route the turn: one classification picks the model, the persona, and whether
+    // sources are shown (M4 — "mode is the primitive"). Sent to the UI up front.
+    let mode = router::classify(query, &api_key).await;
+    let _ = on_event.send(StreamEvent::Meta {
+        mode: mode.label().to_string(),
+        model: mode.model().to_string(),
+    });
+
+    // System message = the mode's voice preamble, plus the vault context block for
+    // modes that use it. Quick tasks skip retrieval entirely.
+    let mut system = String::from(mode.persona());
+    if mode.uses_vault() {
+        if let Some(v) = vault_path(&app) {
+            let ctx = vault::build_context(&v, query);
+            if let Some(block) = vault::context_block(&ctx) {
+                system.push_str("\n\n");
+                system.push_str(&block);
+                if mode.show_sources() {
+                    let sources: Vec<String> = ctx.notes.iter().map(|n| n.path.clone()).collect();
+                    if !sources.is_empty() {
+                        let _ = on_event.send(StreamEvent::Sources(sources));
+                    }
+                }
+            }
         }
     }
+
+    let mut payload: Vec<serde_json::Value> = Vec::new();
+    payload.push(serde_json::json!({ "role": "system", "content": system }));
     for m in &messages {
         payload.push(serde_json::json!({ "role": m.role, "content": m.content }));
     }
 
     let body = serde_json::json!({
-        "model": MODEL,
+        "model": mode.model(),
         "messages": payload,
         "stream": true,
     });

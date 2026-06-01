@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { streamChat, type Message } from "./lib/chat";
+import { streamChat, prettyModel, type Message } from "./lib/chat";
 import "./App.css";
 
 function App() {
@@ -50,6 +50,7 @@ function App() {
 
     try {
       await streamChat(next, {
+        onMeta: (m) => patchLast((last) => ({ ...last, meta: m })),
         onToken: (t) => patchLast((last) => ({ ...last, content: last.content + t })),
         onSources: (s) => patchLast((last) => ({ ...last, sources: s })),
         onError: (e) => setError(e),
@@ -111,6 +112,11 @@ function App() {
             <div className="bubble">
               {m.content || (streaming && i === messages.length - 1 ? "▍" : "")}
             </div>
+            {m.role === "assistant" && m.meta && (
+              <div className="model-label" title="task-routed model (M4)">
+                ✦ {prettyModel(m.meta.model)} · {m.meta.mode}
+              </div>
+            )}
             {m.sources && m.sources.length > 0 && (
               <div className="sources">
                 <span className="sources-label">grounded in</span>

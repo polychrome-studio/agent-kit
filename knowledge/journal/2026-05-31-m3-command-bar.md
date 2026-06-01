@@ -110,3 +110,7 @@ files: knowledge/journal/2026-05-31-m3-command-bar.md, knowledge/wiki/build-stat
 ### 20:30 — 2c70fa9
 Persona + model tuning: companion voice, default to Sonnet 4.6
 files: knowledge/journal/2026-05-31-m3-command-bar.md, knowledge/wiki/roadmap.md, src-tauri/src/lib.rs, src-tauri/src/vault.rs
+
+### 20:30 — 86b3f4e
+Mark M3 verified live in build-status
+files: knowledge/journal/2026-05-31-m3-command-bar.md, knowledge/wiki/build-status.md
