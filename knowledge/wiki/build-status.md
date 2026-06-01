@@ -19,6 +19,7 @@ The milestones (from `docs/build-plan.md`) are ordered so each de-risks the next
 | **M3 — Command bar** | the signature global-hotkey invocation UX | ✅ done (2026-05-31) — verified live |
 | **M4 — Task routing** | the cost lever — cheap vs frontier by task | 🟡 implemented (2026-05-31) — pending live confirm |
 | **M5 — Rituals** | the FOUNDRY-specific differentiation | ⬜ ongoing |
+| **Agent runtime (spine)** | model-driven tool-use loop — the [[north-star]] backbone | 🟡 implemented (2026-06-01) — pending live confirm |
 
 ## Done — detail
 

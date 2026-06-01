@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { streamChat, prettyModel, type Message } from "./lib/chat";
+import { streamChat, prettyModel, toolLine, type Message } from "./lib/chat";
 import "./App.css";
 
 function App() {
@@ -51,6 +51,8 @@ function App() {
     try {
       await streamChat(next, {
         onMeta: (m) => patchLast((last) => ({ ...last, meta: m })),
+        onTool: (step) =>
+          patchLast((last) => ({ ...last, steps: [...(last.steps ?? []), step] })),
         onToken: (t) => patchLast((last) => ({ ...last, content: last.content + t })),
         onSources: (s) => patchLast((last) => ({ ...last, sources: s })),
         onError: (e) => setError(e),
@@ -109,6 +111,13 @@ function App() {
         )}
         {messages.map((m, i) => (
           <div key={i} className={`msg ${m.role}`}>
+            {m.steps && m.steps.length > 0 && (
+              <div className="agent-steps">
+                {m.steps.map((s, j) => (
+                  <div key={j} className="agent-step">{toolLine(s)}</div>
+                ))}
+              </div>
+            )}
             <div className="bubble">
               {m.content || (streaming && i === messages.length - 1 ? "▍" : "")}
             </div>

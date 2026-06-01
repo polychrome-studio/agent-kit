@@ -175,9 +175,52 @@ pub fn build_context(vault: &Path, query: &str) -> VaultContext {
     VaultContext { index, notes }
 }
 
+/// Tool (`search_vault`): score the vault against a query and return a readable digest
+/// of the top matches — each note's path + a snippet — plus the list of paths (for the
+/// Sources chips). The agent uses the digest to decide which notes to `read_note` in full.
+pub fn search_digest(vault: &Path, query: &str) -> (String, Vec<String>) {
+    let ctx = build_context(vault, query);
+    if ctx.notes.is_empty() {
+        return ("No matching notes found in the vault.".into(), vec![]);
+    }
+    let mut out = String::from("Top matching notes (use read_note to open one in full):\n");
+    let mut paths = Vec::new();
+    for n in &ctx.notes {
+        paths.push(n.path.clone());
+        // A short snippet is enough to decide relevance; read_note fetches the rest.
+        let mut snippet = n.content.clone();
+        truncate_chars(&mut snippet, 500);
+        out.push_str(&format!("\n### {}\n{snippet}\n", n.path));
+    }
+    (out, paths)
+}
+
+/// Tool (`read_note`): read one note in full by vault-relative path. Refuses paths that
+/// escape the vault root (the vault is read-only and sandboxed).
+pub fn read_note(vault: &Path, rel: &str) -> Result<String, String> {
+    let root = vault
+        .canonicalize()
+        .map_err(|e| format!("vault unavailable: {e}"))?;
+    let target = root.join(rel.trim_start_matches('/'));
+    let canon = target
+        .canonicalize()
+        .map_err(|_| format!("no such note: {rel}"))?;
+    if !canon.starts_with(&root) {
+        return Err("refused: path is outside the vault".into());
+    }
+    let mut s = read_capped(&canon, NOTE_INCLUDE_CAP * 4)
+        .ok_or_else(|| format!("could not read: {rel}"))?;
+    if s.len() >= NOTE_INCLUDE_CAP * 4 {
+        truncate_chars(&mut s, NOTE_INCLUDE_CAP * 4);
+        s.push_str("\n…(truncated)");
+    }
+    Ok(s)
+}
+
 /// Format the vault context (index + notes) to append after a persona preamble.
 /// Returns None when there's nothing to inject. The persona/voice lives in
 /// `router::Mode::persona` now (M4) — this is just the knowledge block.
+#[allow(dead_code)]
 pub fn context_block(ctx: &VaultContext) -> Option<String> {
     if ctx.is_empty() {
         return None;

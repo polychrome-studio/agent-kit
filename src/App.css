@@ -157,6 +157,27 @@ body {
   font-size: 0.85rem;
 }
 
+/* ---- Agent activity trail (tool-use loop) ---- */
+.agent-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+  max-width: 80%;
+}
+.agent-step {
+  font-size: 0.74rem;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 3px 9px;
+  border-left: 2px solid var(--amber-deep);
+  background: rgba(255, 158, 87, 0.06);
+  border-radius: 0 6px 6px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ---- Model label (M4 task routing) ---- */
 .model-label {
   margin-top: 5px;

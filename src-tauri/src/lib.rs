@@ -7,22 +7,22 @@
 // binary changes identity every rebuild, so the keychain re-prompts forever.
 // Release builds (code-signed, stable identity) can move this back to the keychain.
 
+mod agent;
 mod router;
 mod vault;
 
-use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Emitter, Manager};
 
-const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
+pub(crate) const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 const KEY_FILE: &str = "openrouter.key";
 const VAULT_FILE: &str = "vault.path";
 
 #[derive(Serialize, Deserialize, Clone)]
-struct ChatMessage {
+pub(crate) struct ChatMessage {
     role: String,
     content: String,
 }
@@ -31,9 +31,12 @@ struct ChatMessage {
 // Serializes as { "type": "token", "data": "..." } etc.
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "lowercase", tag = "type", content = "data")]
-enum StreamEvent {
+pub(crate) enum StreamEvent {
     /// Which mode + model handled this turn (sent first, for the UI's trust/cost label).
     Meta { mode: String, model: String },
+    /// The agent invoked a tool this step (search_vault / read_note / web_search) — drives
+    /// the "Amber is working" activity trail in the UI.
+    Tool { name: String, arg: String },
     /// Vault notes that grounded this answer — only sent in modes that show sources.
     Sources(Vec<String>),
     Token(String),
@@ -101,7 +104,7 @@ fn clear_api_key(app: AppHandle) -> Result<(), String> {
 
 /// Resolve the vault folder: AMBER_VAULT env var wins, else the stored path.
 /// Returns None if unset or the path is no longer a directory.
-fn vault_path(app: &AppHandle) -> Option<PathBuf> {
+pub(crate) fn vault_path(app: &AppHandle) -> Option<PathBuf> {
     let raw = if let Ok(v) = std::env::var("AMBER_VAULT") {
         v
     } else {
@@ -134,7 +137,8 @@ fn set_vault_path(app: AppHandle, path: String) -> Result<(), String> {
     fs::write(&file, path).map_err(|e| e.to_string())
 }
 
-/// Stream a chat completion from OpenRouter. Tokens arrive on `on_event` as they generate.
+/// Handle one user turn. Classifies the mode (M4), then runs the agent tool-use loop
+/// (`agent::run`) which streams the answer and tool activity over `on_event`.
 #[tauri::command]
 async fn chat(
     app: AppHandle,
@@ -150,99 +154,15 @@ async fn chat(
         .map(|m| m.content.as_str())
         .unwrap_or("");
 
-    // Route the turn: one classification picks the model, the persona, and whether
-    // sources are shown (M4 — "mode is the primitive"). Sent to the UI up front.
+    // Route the turn: one classification picks the model, the persona, the toolset, and
+    // whether sources are shown (M4 — "mode is the primitive"). Sent to the UI up front.
     let mode = router::classify(query, &api_key).await;
     let _ = on_event.send(StreamEvent::Meta {
         mode: mode.label().to_string(),
         model: mode.model().to_string(),
     });
 
-    // System message = the mode's voice preamble, plus the vault context block for
-    // modes that use it. Quick tasks skip retrieval entirely.
-    let mut system = String::from(mode.persona());
-    if mode.uses_vault() {
-        if let Some(v) = vault_path(&app) {
-            let ctx = vault::build_context(&v, query);
-            if let Some(block) = vault::context_block(&ctx) {
-                system.push_str("\n\n");
-                system.push_str(&block);
-                if mode.show_sources() {
-                    let sources: Vec<String> = ctx.notes.iter().map(|n| n.path.clone()).collect();
-                    if !sources.is_empty() {
-                        let _ = on_event.send(StreamEvent::Sources(sources));
-                    }
-                }
-            }
-        }
-    }
-
-    let mut payload: Vec<serde_json::Value> = Vec::new();
-    payload.push(serde_json::json!({ "role": "system", "content": system }));
-    for m in &messages {
-        payload.push(serde_json::json!({ "role": m.role, "content": m.content }));
-    }
-
-    let body = serde_json::json!({
-        "model": mode.model(),
-        "messages": payload,
-        "stream": true,
-    });
-
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(OPENROUTER_URL)
-        .header("Authorization", format!("Bearer {api_key}"))
-        // OpenRouter attribution headers (optional but recommended).
-        .header("HTTP-Referer", "https://github.com/inkxel/amber")
-        .header("X-Title", "Amber")
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
-        let msg = format!("OpenRouter {status}: {text}");
-        let _ = on_event.send(StreamEvent::Error(msg.clone()));
-        return Err(msg);
-    }
-
-    // Parse the SSE stream: lines like `data: {json}`, terminated by `data: [DONE]`.
-    let mut stream = resp.bytes_stream();
-    let mut buf = String::new();
-
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| e.to_string())?;
-        buf.push_str(&String::from_utf8_lossy(&chunk));
-
-        while let Some(nl) = buf.find('\n') {
-            let line: String = buf.drain(..=nl).collect();
-            let line = line.trim();
-
-            let Some(data) = line.strip_prefix("data:") else {
-                continue; // SSE comments (": ...") and blank lines
-            };
-            let data = data.trim();
-
-            if data == "[DONE]" {
-                let _ = on_event.send(StreamEvent::Done);
-                return Ok(());
-            }
-
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                if let Some(tok) = json["choices"][0]["delta"]["content"].as_str() {
-                    if !tok.is_empty() {
-                        let _ = on_event.send(StreamEvent::Token(tok.to_string()));
-                    }
-                }
-            }
-        }
-    }
-
-    let _ = on_event.send(StreamEvent::Done);
-    Ok(())
+    agent::run(&app, mode, &messages, &api_key, &on_event).await
 }
 
 /// Show/hide the command-bar window. The global shortcut and the menubar both

@@ -24,16 +24,21 @@ pub enum Mode {
 }
 
 impl Mode {
-    /// The OpenRouter slug that answers in this mode. The `:online` suffix on research
-    /// enables OpenRouter's built-in web search (forced per request) so it can reach
-    /// beyond the vault. Companion/quick stay offline to keep them snappy — "online when
-    /// the model judges it needs to" is the later model-decided tool-use upgrade.
+    /// The OpenRouter slug that answers in this mode. Web access is no longer a forced
+    /// `:online` suffix — it's the model-decided `web_search` tool (see [[agent]]), so the
+    /// model reaches the web only when it judges it needs to.
     pub fn model(&self) -> &'static str {
         match self {
             Mode::Quick => "anthropic/claude-haiku-4.5",
             Mode::Companion => "anthropic/claude-sonnet-4.6",
-            Mode::Research => "anthropic/claude-opus-4.8:online",
+            Mode::Research => "anthropic/claude-opus-4.8",
         }
+    }
+
+    /// Whether the model gets the agent toolset (search_vault / read_note / web_search).
+    /// Quick is mechanical (format/rewrite) — no tools, one shot, stays instant.
+    pub fn tools(&self) -> bool {
+        !matches!(self, Mode::Quick)
     }
 
     /// Short label surfaced in the UI (next to the model name) for trust + cost awareness.
@@ -43,11 +48,6 @@ impl Mode {
             Mode::Companion => "companion",
             Mode::Research => "research",
         }
-    }
-
-    /// Quick tasks don't need the vault; companion + research do (recall / grounding).
-    pub fn uses_vault(&self) -> bool {
-        !matches!(self, Mode::Quick)
     }
 
     /// Only research mode surfaces source chips — Tucker doesn't want to see the
@@ -62,25 +62,25 @@ impl Mode {
         match self {
             Mode::Companion => {
                 "You are Amber — Tucker's second brain and companion, not a search engine over \
-                 his files. The notes below (if any) are YOUR MEMORY of Tucker and his world: \
-                 things he's written, decided, and been working on. Treat them as what you \
-                 already know about him, not documents to quote. Never say \"according to your \
-                 vault,\" never cite filenames, never announce that you looked something up — \
-                 you just know it. Voice: a sharp friend who's been paying attention. Warm, \
-                 direct, concise — sentences, not paragraphs. No preamble; lead with the answer. \
-                 Weave in what he already knows or has in flight, anticipate his next move, and \
-                 offer to go deeper instead of dumping everything. If your memory doesn't cover \
-                 it, just answer naturally."
+                 his files. You have tools: `search_vault` and `read_note` to recall what he's \
+                 written/decided/worked on, and `web_search` for anything current or external. \
+                 Use them silently when a question turns on something specific about Tucker or the \
+                 world — but don't over-search; for ordinary conversation just talk. Treat what you \
+                 retrieve as YOUR MEMORY of him, not documents to quote: never say \"according to \
+                 your vault,\" never cite filenames, never announce that you looked something up. \
+                 Voice: a sharp friend who's been paying attention. Warm, direct, concise — \
+                 sentences, not paragraphs. No preamble; lead with the answer. Weave in what he \
+                 already knows or has in flight, anticipate his next move, offer to go deeper."
             }
             Mode::Research => {
-                "You are Amber, doing research for Tucker. You have two sources: his knowledge \
-                 vault (the notes below) AND live web search. Use both. Ground in his notes where \
-                 they apply, and actively reach out to the web for anything current, external, or \
-                 missing from his notes — don't just report that his notes are thin, GO FIND what's \
-                 missing and bring it back. Be pragmatic, precise, well-structured: lead with the \
-                 answer, then the support. Clearly separate what came from his notes (name the \
-                 note) from what came from the web (cite the URL) from your own general knowledge. \
-                 This is work, not conversation — no companion chit-chat, no filler."
+                "You are Amber, doing research for Tucker. You have tools — USE THEM, don't answer \
+                 from memory alone: `search_vault` then `read_note` to mine his own notes, and \
+                 `web_search` for anything current, external, or missing from his notes. Don't just \
+                 report that his notes are thin — GO FIND what's missing and bring it back. Search \
+                 iteratively: search, read the promising hits, search again to fill gaps. Be \
+                 pragmatic, precise, well-structured: lead with the answer, then the support. \
+                 Clearly separate what came from his notes from what came from the web (cite the \
+                 URL) from your own general knowledge. This is work — no companion chit-chat."
             }
             Mode::Quick => {
                 "You are Amber. Do exactly the small task asked and nothing more. Answer in as \
@@ -191,8 +191,8 @@ mod tests {
 
     #[test]
     fn mode_knobs() {
-        assert!(!Mode::Quick.uses_vault());
-        assert!(Mode::Companion.uses_vault());
+        assert!(!Mode::Quick.tools());
+        assert!(Mode::Companion.tools());
         assert!(Mode::Research.show_sources());
         assert!(!Mode::Companion.show_sources());
     }

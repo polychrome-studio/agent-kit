@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { streamChat, prettyModel, type Meta } from "./lib/chat";
+import { streamChat, prettyModel, toolLine, type Meta, type ToolStep } from "./lib/chat";
 
 // The floating, borderless, always-on-top command bar (M3). Summoned by the
 // global Option+Space shortcut (registered in Rust). Ephemeral one-shot grammar:
@@ -9,6 +9,7 @@ export default function CommandBar() {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<string[]>([]);
+  const [steps, setSteps] = useState<ToolStep[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +20,7 @@ export default function CommandBar() {
     setQuery("");
     setAnswer("");
     setSources([]);
+    setSteps([]);
     setMeta(null);
     setError(null);
     setStreaming(false);
@@ -47,11 +49,13 @@ export default function CommandBar() {
     setError(null);
     setAnswer("");
     setSources([]);
+    setSteps([]);
     setMeta(null);
     setStreaming(true);
     try {
       await streamChat([{ role: "user", content: text }], {
         onMeta: (m) => setMeta(m),
+        onTool: (step) => setSteps((s) => [...s, step]),
         onToken: (t) => setAnswer((a) => a + t),
         onSources: (s) => setSources(s),
         onError: (e) => setError(e),
@@ -63,7 +67,8 @@ export default function CommandBar() {
     }
   }
 
-  const hasOutput = answer || streaming || error || sources.length > 0 || meta;
+  const hasOutput =
+    answer || streaming || error || sources.length > 0 || steps.length > 0 || meta;
 
   return (
     <div
@@ -92,6 +97,13 @@ export default function CommandBar() {
 
       {hasOutput && (
         <div className="palette-body">
+          {steps.length > 0 && (
+            <div className="agent-steps">
+              {steps.map((s, j) => (
+                <div key={j} className="agent-step">{toolLine(s)}</div>
+              ))}
+            </div>
+          )}
           {error ? (
             <div className="palette-error">{error}</div>
           ) : (

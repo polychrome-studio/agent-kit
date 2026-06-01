@@ -12,16 +12,23 @@ export interface Meta {
   model: string;
 }
 
+export interface ToolStep {
+  name: string;
+  arg: string;
+}
+
 export interface Message {
   role: Role;
   content: string;
   sources?: string[];
   meta?: Meta;
+  steps?: ToolStep[];
 }
 
 // Mirrors the Rust StreamEvent enum (serde lowercase tag/content).
 export type StreamEvent =
   | { type: "meta"; data: Meta }
+  | { type: "tool"; data: ToolStep }
   | { type: "sources"; data: string[] }
   | { type: "token"; data: string }
   | { type: "done" }
@@ -29,10 +36,24 @@ export type StreamEvent =
 
 export interface StreamHandlers {
   onMeta?: (meta: Meta) => void;
+  onTool?: (step: ToolStep) => void;
   onSources?: (sources: string[]) => void;
   onToken?: (token: string) => void;
   onError?: (message: string) => void;
   onDone?: () => void;
+}
+
+/** A tool step → a human "Amber is working" line, e.g. "🔎 searched your vault · GP1". */
+export function toolLine({ name, arg }: ToolStep): string {
+  const label =
+    name === "search_vault"
+      ? "🔎 searched your vault"
+      : name === "read_note"
+        ? "📄 read a note"
+        : name === "web_search"
+          ? "🌐 searched the web"
+          : `· ${name}`;
+  return arg ? `${label} · ${arg}` : label;
 }
 
 /** "anthropic/claude-opus-4.8:online" → "opus 4.8" for a compact UI label. */
@@ -51,6 +72,7 @@ export async function streamChat(messages: Message[], handlers: StreamHandlers):
   onEvent.onmessage = (ev) => {
     if (ev.type === "token") handlers.onToken?.(ev.data);
     else if (ev.type === "meta") handlers.onMeta?.(ev.data);
+    else if (ev.type === "tool") handlers.onTool?.(ev.data);
     else if (ev.type === "sources") handlers.onSources?.(ev.data);
     else if (ev.type === "error") handlers.onError?.(ev.data);
     else if (ev.type === "done") handlers.onDone?.();
