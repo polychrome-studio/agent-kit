@@ -24,12 +24,15 @@ pub enum Mode {
 }
 
 impl Mode {
-    /// The OpenRouter slug that answers in this mode.
+    /// The OpenRouter slug that answers in this mode. The `:online` suffix on research
+    /// enables OpenRouter's built-in web search (forced per request) so it can reach
+    /// beyond the vault. Companion/quick stay offline to keep them snappy — "online when
+    /// the model judges it needs to" is the later model-decided tool-use upgrade.
     pub fn model(&self) -> &'static str {
         match self {
             Mode::Quick => "anthropic/claude-haiku-4.5",
             Mode::Companion => "anthropic/claude-sonnet-4.6",
-            Mode::Research => "anthropic/claude-opus-4.8",
+            Mode::Research => "anthropic/claude-opus-4.8:online",
         }
     }
 
@@ -70,12 +73,14 @@ impl Mode {
                  it, just answer naturally."
             }
             Mode::Research => {
-                "You are Amber, doing research for Tucker against his knowledge vault. The notes \
-                 below are his knowledge base. Be pragmatic, precise, and well-structured — lead \
-                 with the answer, then the support. When a specific claim rests on a particular \
-                 note, you may name that note so he can verify it. Clearly distinguish what's \
-                 grounded in his notes from what's general knowledge. This is work, not \
-                 conversation — no companion chit-chat, no filler."
+                "You are Amber, doing research for Tucker. You have two sources: his knowledge \
+                 vault (the notes below) AND live web search. Use both. Ground in his notes where \
+                 they apply, and actively reach out to the web for anything current, external, or \
+                 missing from his notes — don't just report that his notes are thin, GO FIND what's \
+                 missing and bring it back. Be pragmatic, precise, well-structured: lead with the \
+                 answer, then the support. Clearly separate what came from his notes (name the \
+                 note) from what came from the web (cite the URL) from your own general knowledge. \
+                 This is work, not conversation — no companion chit-chat, no filler."
             }
             Mode::Quick => {
                 "You are Amber. Do exactly the small task asked and nothing more. Answer in as \

@@ -18,6 +18,7 @@ related: [[build-status]]
 - **M5 — rituals**: port FOUNDRY rituals — morning briefing (`/today`-style), journaling, capture-to-vault — with write-back ("two outputs" rule).
 
 ## Deferred capabilities
+- **Model-decided web search (tool-use)** — *the proper "don't cripple any model from going online" answer.* Today research mode is `:online` (OpenRouter forces a web search on every research request). That's fine for research but wrong as a blanket default: `:online` is always-on, not "when the model judges it needs to." The real version gives the model a search tool it calls only when warranted — so any mode can reach the web without forcing a search (and ~2¢ + 1–2s latency) on every casual message. Bigger build: a multi-step tool loop that changes the simple streaming model. Surfaced 2026-06-01 (Tucker: "don't ever want to cripple any of the models from being able to do online work if needed"). See [[journal/2026-06-01-session]].
 - **Vault write-back** — opt-in, explicit, matching the vault's own conventions (frontmatter, wikilinks). Never silent.
 - **Vector search** — only if index+grep recall visibly fails as the vault grows.
 - **FAL media generation** — images/video; cosi-platform already wires FAL.

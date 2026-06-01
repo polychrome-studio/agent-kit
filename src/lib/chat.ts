@@ -35,11 +35,12 @@ export interface StreamHandlers {
   onDone?: () => void;
 }
 
-/** "anthropic/claude-sonnet-4.6" → "sonnet 4.6" for a compact UI label. */
+/** "anthropic/claude-opus-4.8:online" → "opus 4.8" for a compact UI label. */
 export function prettyModel(model: string): string {
   return model
     .split("/")
     .pop()!
+    .replace(/:online$/, "")
     .replace(/^claude-/, "")
     .replace(/-/g, " ");
 }
