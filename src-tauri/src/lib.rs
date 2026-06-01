@@ -14,11 +14,18 @@ mod vault;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Emitter, Manager};
 
 pub(crate) const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 const KEY_FILE: &str = "openrouter.key";
+
+/// Cooperative cancel flag for the in-flight agent turn. `stop_chat` sets it; the agent
+/// loop checks it between steps and mid-stream and bails. (One flag — a turn is one at a
+/// time per the disabled-while-streaming input.)
+#[derive(Default)]
+pub(crate) struct CancelFlag(pub AtomicBool);
 const VAULT_FILE: &str = "vault.path";
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -144,8 +151,10 @@ async fn chat(
     app: AppHandle,
     messages: Vec<ChatMessage>,
     on_event: Channel<StreamEvent>,
+    cancel: tauri::State<'_, CancelFlag>,
 ) -> Result<(), String> {
     let api_key = read_key(&app).ok_or("No API key set. Add it in Settings.")?;
+    cancel.0.store(false, Ordering::Relaxed); // fresh turn — clear any prior stop
 
     let query = messages
         .iter()
@@ -162,7 +171,13 @@ async fn chat(
         model: mode.model().to_string(),
     });
 
-    agent::run(&app, mode, &messages, &api_key, &on_event).await
+    agent::run(&app, mode, &messages, &api_key, &cancel.0, &on_event).await
+}
+
+/// Cancel the in-flight agent turn (the UI's stop button).
+#[tauri::command]
+fn stop_chat(cancel: tauri::State<'_, CancelFlag>) {
+    cancel.0.store(true, Ordering::Relaxed);
 }
 
 /// Show/hide the command-bar window. The global shortcut and the menubar both
@@ -186,6 +201,7 @@ pub fn run() {
     use tauri_plugin_global_shortcut::ShortcutState;
 
     tauri::Builder::default()
+        .manage(CancelFlag::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(
@@ -216,7 +232,8 @@ pub fn run() {
             clear_api_key,
             get_vault_path,
             set_vault_path,
-            chat
+            chat,
+            stop_chat
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

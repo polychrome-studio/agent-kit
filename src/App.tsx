@@ -157,9 +157,20 @@ function App() {
           onChange={(e) => setInput(e.currentTarget.value)}
           placeholder={streaming ? "Amber is thinking…" : "Message Amber…"}
         />
-        <button type="submit" disabled={streaming || !input.trim()}>
-          ↑
-        </button>
+        {streaming ? (
+          <button
+            type="button"
+            className="stop"
+            title="Stop Amber"
+            onClick={() => invoke("stop_chat")}
+          >
+            ■
+          </button>
+        ) : (
+          <button type="submit" disabled={!input.trim()}>
+            ↑
+          </button>
+        )}
       </form>
     </main>
   );

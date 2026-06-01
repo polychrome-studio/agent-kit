@@ -54,5 +54,40 @@ commits (done), then build the spine. This is that build.
 - [ ] Now that the loop exists, vault **write-back** and **rituals** become tools (M5) — and a
       `MAX_STEPS` hit should probably tell the user it stopped early rather than ending silently.
 
+## Follow-up — first live test: web_search bug + stop button (same day)
+Tucker live-tested. The loop **works** — it searched the vault iteratively and (when asked
+about outside factors) called `web_search` twice. But two issues + a pile of design flags.
+
+### Bug FIXED: web_search returned stale generic text, not live results
+Diagnosed against OpenRouter with Tucker's key: the web plugin **does** run and attaches real,
+current results as `message.annotations` (verified: a Feb-2026 Federal Register CARS-rule
+withdrawal, a 2025 5th-Circuit ruling). But my `web_search` returned `message.content` — and the
+cheap haiku sub-model *ignored the injected results and answered from stale training data*, even
+disclaiming "I cannot search the web." So the main model got generic guidance.
+**Fix:** `web_search` now harvests `annotations[].url_citation` (url + title + content, capped
+1200 chars each, UTF-8-safe) and returns THOSE; the sub-model's prose is discarded (`max_tokens:16`,
+it only exists to trigger the plugin search). Confirmed annotations carry real fresh content.
+
+### Added: stop button (Tucker asked)
+Cooperative cancel: `CancelFlag(AtomicBool)` managed state; `stop_chat` command sets it; the agent
+loop checks it at the top of each step AND mid-stream (between SSE chunks → drops the stream,
+reqwest aborts). `chat` clears it at turn start. UI: composer button flips to ■ while streaming
+(App), palette shows a ■ in the input row (CommandBar). One global flag (a turn is one-at-a-time).
+
+### Design flags from Tucker — DEFERRED to an agent-UX polish pass (he said "design fixes later")
+Parked in [[roadmap]], NOT built (only a light CSS tone-down done now):
+- **Run-on narration.** Inter-step "Let me dig into…" narration concatenates into the answer with
+  no spacing ("…challenges.Let me dig…"). Root cause: every step's content tokens stream into one
+  bubble. Real fix = separate *thinking* (inter-step narration) from the *final answer*.
+- **Thinking should fade + collapse** into a dropdown (ChatGPT/Claude pattern), not stay inline.
+  Same fix as above — once thinking is separated, it can collapse.
+- **Step icons + "grounded in" chips visually dominate the answer text.** Toned down now (steps →
+  faint borderless lines that brighten on hover; chips → muted until hover). Full visual-hierarchy
+  pass still wanted.
+
 ## Related
 - Touched articles: [[north-star]], [[build-status]], [[roadmap]]
+
+### 10:19 — 27bc0f5
+Agent runtime: model-driven tool-use loop (the north-star spine)
+files: knowledge/journal/2026-06-01-agent-loop.md, knowledge/journal/2026-06-01-session.md, knowledge/wiki/build-status.md, knowledge/wiki/roadmap.md, src-tauri/src/agent.rs, src-tauri/src/lib.rs, src-tauri/src/router.rs, src-tauri/src/vault.rs, src/App.css, src/App.tsx, src/CommandBar.tsx, src/lib/chat.ts

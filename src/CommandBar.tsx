@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { streamChat, prettyModel, toolLine, type Meta, type ToolStep } from "./lib/chat";
 
@@ -93,6 +94,16 @@ export default function CommandBar() {
           onChange={(e) => setQuery(e.currentTarget.value)}
           placeholder={streaming ? "Amber is thinking…" : "Ask Amber…"}
         />
+        {streaming && (
+          <button
+            type="button"
+            className="palette-stop"
+            title="Stop Amber"
+            onClick={() => invoke("stop_chat")}
+          >
+            ■
+          </button>
+        )}
       </form>
 
       {hasOutput && (

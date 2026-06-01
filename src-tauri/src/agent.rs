@@ -7,6 +7,7 @@
 // browser, proactivity) is just another tool hung off it.
 
 use serde_json::{json, Value};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::ipc::Channel;
 use tauri::AppHandle;
 
@@ -81,6 +82,7 @@ pub async fn run(
     mode: Mode,
     messages: &[ChatMessage],
     api_key: &str,
+    cancel: &AtomicBool,
     on_event: &Channel<StreamEvent>,
 ) -> Result<(), String> {
     let client = reqwest::Client::new();
@@ -94,6 +96,11 @@ pub async fn run(
     }
 
     for _step in 0..MAX_STEPS {
+        if cancel.load(Ordering::Relaxed) {
+            let _ = on_event.send(StreamEvent::Done);
+            return Ok(());
+        }
+
         let mut body = json!({
             "model": mode.model(),
             "messages": convo,
@@ -104,10 +111,10 @@ pub async fn run(
             body["tool_choice"] = json!("auto");
         }
 
-        let calls = stream_once(&client, api_key, &body, on_event).await?;
+        let calls = stream_once(&client, api_key, &body, cancel, on_event).await?;
 
-        // No tool calls → the model just answered. Done.
-        if calls.is_empty() {
+        // No tool calls (or the user hit stop mid-stream) → we're done.
+        if calls.is_empty() || cancel.load(Ordering::Relaxed) {
             let _ = on_event.send(StreamEvent::Done);
             return Ok(());
         }
@@ -152,6 +159,7 @@ async fn stream_once(
     client: &reqwest::Client,
     api_key: &str,
     body: &Value,
+    cancel: &AtomicBool,
     on_event: &Channel<StreamEvent>,
 ) -> Result<Vec<PartialToolCall>, String> {
     let resp = client
@@ -178,6 +186,10 @@ async fn stream_once(
     let mut calls: Vec<PartialToolCall> = Vec::new();
 
     while let Some(chunk) = stream.next().await {
+        // User hit stop — drop the stream (reqwest aborts the request) and bail.
+        if cancel.load(Ordering::Relaxed) {
+            return Ok(calls);
+        }
         let chunk = chunk.map_err(|e| e.to_string())?;
         buf.push_str(&String::from_utf8_lossy(&chunk));
 
@@ -273,16 +285,18 @@ async fn execute(
     }
 }
 
-/// `web_search` tool: reuse OpenRouter's built-in web plugin (no new API key) via a small
-/// completion that returns findings + source URLs. This is the model-decided web access.
+/// `web_search` tool: reuse OpenRouter's built-in web plugin (no new API key). The plugin
+/// runs a real search and attaches the fetched pages as `annotations` — we return THOSE
+/// (url + title + content), not the sub-model's prose, which otherwise answers from stale
+/// training data and even disclaims it can't browse. The annotations are the live results.
 async fn web_search(client: &reqwest::Client, api_key: &str, query: &str) -> String {
     let body = json!({
         "model": CLASSIFIER_WEB_MODEL,
         "plugins": [{ "id": "web", "max_results": 5 }],
-        "messages": [{
-            "role": "user",
-            "content": format!("Search the web and report the key findings with their source URLs for: {query}")
-        }]
+        // We only want the plugin to fire the search; the model's own text is discarded,
+        // so keep it tiny.
+        "max_tokens": 16,
+        "messages": [{ "role": "user", "content": query }]
     });
     let resp = client
         .post(crate::OPENROUTER_URL)
@@ -291,16 +305,42 @@ async fn web_search(client: &reqwest::Client, api_key: &str, query: &str) -> Str
         .json(&body)
         .send()
         .await;
-    match resp {
-        Ok(r) => match r.json::<Value>().await {
-            Ok(v) => v["choices"][0]["message"]["content"]
-                .as_str()
-                .unwrap_or("(no web results)")
-                .to_string(),
-            Err(e) => format!("web_search could not parse results: {e}"),
+    let v: Value = match resp {
+        Ok(r) => match r.json().await {
+            Ok(v) => v,
+            Err(e) => return format!("web_search could not parse results: {e}"),
         },
-        Err(e) => format!("web_search failed: {e}"),
+        Err(e) => return format!("web_search failed: {e}"),
+    };
+
+    let Some(annotations) = v["choices"][0]["message"]["annotations"].as_array() else {
+        return "(web search returned no results)".into();
+    };
+    if annotations.is_empty() {
+        return "(web search returned no results)".into();
     }
+
+    let mut out = format!("Live web results for \"{query}\":\n");
+    for a in annotations {
+        let uc = &a["url_citation"];
+        let url = uc["url"].as_str().unwrap_or("");
+        let title = uc["title"].as_str().unwrap_or("").trim();
+        let mut content = uc["content"].as_str().unwrap_or("").trim().to_string();
+        if content.len() > 1200 {
+            // Cap each result so a few sources don't blow the context (UTF-8 safe).
+            let mut end = 1200;
+            while !content.is_char_boundary(end) {
+                end -= 1;
+            }
+            content.truncate(end);
+            content.push('…');
+        }
+        out.push_str(&format!(
+            "\n- {} ({url})\n  {content}\n",
+            if title.is_empty() { url } else { title }
+        ));
+    }
+    out
 }
 
 /// The query/path from a tool-call's JSON args, for the UI's "using X" activity line.

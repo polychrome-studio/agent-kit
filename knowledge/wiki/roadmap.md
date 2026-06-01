@@ -44,6 +44,12 @@ A self-contained increment that makes Amber behave like a real menubar companion
 - **Close ≠ quit** — intercept `WindowEvent::CloseRequested` → `prevent_close()` + `window.hide()`; app lives in the tray, real quit via tray menu (optionally also intercept Cmd+Q). Note: switching activation policy at runtime while a window is open can have minor focus quirks — fine in practice.
 - Caveat: dock-toggle + tray are macOS-shaped; Windows equivalents (`skipTaskbar` + system tray) live in the Windows-build checklist above.
 
+## Agent UX polish (flagged by Tucker 2026-06-01 on first live test — design pass, deferred)
+The agent loop works; these are how it *reads*. He explicitly said "design fixes later, but flag as I see them." A light CSS tone-down shipped 2026-06-01; the structural ones below remain.
+- **Separate thinking from the answer.** Inter-step narration ("Let me dig into…") streams into the same bubble as the final answer, concatenated with no spacing (run-on: "…challenges.Let me dig…"). Root cause: every loop step's content tokens go to one place. Fix: route inter-step narration to a distinct *thinking* channel, only the final step's content to the answer bubble.
+- **Thinking should fade out + collapse into a dropdown** (ChatGPT/Claude pattern) once the answer starts — not stay inline. Depends on the separation above. This is the big perceived-quality win.
+- **Visual hierarchy: step trail + "grounded in" chips were louder than the answer.** Toned down 2026-06-01 (steps → faint borderless lines, brighten on group-hover; chips → muted until hover). A proper design pass still wanted (iconography, spacing, maybe collapse the step trail too).
+
 ## UX / polish parking lot
 - ~~**Source chips visibility should follow mode**~~ → done in M4 (research shows chips, companion/quick hide them — gated server-side). See [[journal/2026-05-31-m4-task-routing]].
 - **Custom hotkey: double-tap right Shift** — Tucker's actual ask for summoning the command bar. Not reachable via `tauri-plugin-global-shortcut` (combinations only; no modifier-only, no left/right-side, no double-tap). Would need a macOS `CGEventTap`/`rdev`-style global key monitor + an Accessibility-permission prompt. Currently Option+Space. Revisit alongside a user-configurable-hotkey setting.
