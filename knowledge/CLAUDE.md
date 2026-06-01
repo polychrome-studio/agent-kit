@@ -158,5 +158,8 @@ related: [[other-article-1]], [[other-article-2]]
 
 ## Context log
 
+### 2026-06-01 — North star aligned
+Tucker set the explicit north star: Amber = his FOUNDRY + Obsidian + Claude Code CLI workflow "and then some," with a beautiful/intuitive surface over a genuinely agentic backend (Hermes/OpenClaw/Pi-class). The spine is a model-driven tool-use loop; web-search/write-back/rituals/proactivity are tools off it. New article [[north-star]] is the canonical statement — read it before architectural work. See [[journal/2026-06-01-session]].
+
 ### 2026-05-31 — Knowledge layer created
 Scaffolded `amber/knowledge/` to mirror the cosi-platform code-side knowledge layer (`/Users/tucker/Code/cosi/cosi-platform/knowledge/`) so the Amber build has session-to-session documentation and decision history next to the source. Seeded with the M0–M2 build history (journal + decision records) and the first wiki articles. See [[journal/2026-05-31-knowledge-layer-created]].

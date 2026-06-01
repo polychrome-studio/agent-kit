@@ -11,6 +11,8 @@ related: [[build-status]]
 
 "At some point we should…" — ideas surfaced during build sessions that aren't scheduled yet. Not commitments. When one graduates into active work, it moves to [[build-status]] and gets a journal entry. Append freely; don't delete (strike through with a note if dropped).
 
+> **Organizing principle (2026-06-01): the agentic-runtime arc.** Per [[north-star]], the post-M4 goal is to turn Amber from chat+RAG into a genuinely agentic backend (Hermes/OpenClaw/Pi-class) behind a beautiful surface. The **spine** is a model-driven tool-use loop; web-search, vault write-back, rituals, and proactivity are all *tools* that hang off it. So **model-decided web search (below) is brick #1**, not just a deferred nicety — it's where the agent loop starts. Bend new work toward this arc rather than adding more one-shot chat features.
+
 ## Near-term (next few milestones)
 - ~~**M3 — command bar**: global hotkey → borderless always-on-top window. Componentize `App.tsx` for multi-window.~~ → implemented 2026-05-31, see [[build-status]] + [[journal/2026-05-31-m3-command-bar]].
 - ~~**M4 — task routing**: classify the task, pick model tier; surface which model answered.~~ → implemented 2026-05-31 (hybrid classifier, `Mode{Quick,Companion,Research}` driving model+voice+chips). See [[build-status]] + [[journal/2026-05-31-m4-task-routing]]. The "mode is the primitive" design below is now built; what remains parked is the *user-facing* control (override mode, curated model picker, token budget) under "Personalization & control".
