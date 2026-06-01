@@ -2,7 +2,7 @@
 name: roadmap
 type: roadmap
 created: 2026-05-31
-last_updated: 2026-05-31
+last_updated: 2026-06-01
 confidence: medium
 related: [[build-status]]
 ---
@@ -22,15 +22,28 @@ related: [[build-status]]
 - **Vector search** — only if index+grep recall visibly fails as the vault grows.
 - **FAL media generation** — images/video; cosi-platform already wires FAL.
 - **Keychain key storage** — at release, once the app is code-signed.
-- **Windows build** — Tauri is cross-platform; free-ish later.
+- **Windows build** — *low priority* (only 2–3 Windows users on the team). Tauri was chosen partly for this: the app logic ports for free from one codebase. What is NOT free, the known checklist (surfaced 2026-06-01):
+  - **Hotkey** — Option+Space is Mac. On Windows `Alt+Space` opens the window system menu, so pick a different default (e.g. `Ctrl+Space`). Needs per-platform hotkey config.
+  - **Palette transparency/rounded look** — uses the macOS private-API flag (`macOSPrivateApi` + `macos-private-api` feature); Windows does transparency via acrylic/mica. Needs platform-specific window effects.
+  - **Signing** — Apple notarization vs Windows Authenticode cert: two separate build/sign pipelines.
+  - **Dock-off + tray** (see companion behaviors below) are macOS-shaped — Windows equivalents are `skipTaskbar` + a system-tray icon (same idea, different mechanism).
+  - Minor: WebView2 (Edge) renders instead of WKWebView; key storage abstraction differs (Keychain vs Credential Manager — the keyring plugin covers both).
+  - **Effort:** low-to-moderate — mostly hotkey + window chrome + a second build/sign lane. Deliberate "turn on later," not a rewrite.
 
 ## Personalization & control (post-M4, surfaced 2026-05-31)
 - **User-definable personality / tone.** Common + expected (cf. ChatGPT Personalization: base style + characteristics + custom instructions). Amber should let the user shape Amber's voice — *but* the lever is per-**mode** (see M4 "mode is the primitive"), not one global slider: research wants pragmatic/straight, a thought-partner wants companion. Inferred from task type, user-overridable. The M2 persona prompt (`vault.rs::system_prompt`) is the current single hardcoded voice — this generalizes it.
 - **Curated model selection with guardrails — NOT free choice.** Tucker's key insight: *"if I give people full choice they will always go for the biggest most expensive."* So: the **harness decides the tier** the task needs; the user only picks from a **short curated shortlist within that tier**, framed as intent ("fast" vs "deep"), never as raw model names. Admin holds the ceiling + (eventually) a **per-user token budget / limit** as a control surface. This is the M4 cost lever with a human-friendly face. Directly relevant to cosi-platform (multi-user, cost governance) — Amber is the proving ground.
 
+## Native macOS companion behaviors (next clean chunk — surfaced 2026-06-01)
+A self-contained increment that makes Amber behave like a real menubar companion (Raycast-pattern). All three are standard Tauri 2 / Rust — confirmed achievable, no fight with the stack:
+- **Menu bar (tray) icon** — `TrayIcon` API + the `tray-icon` cargo feature; dropdown menu (Open Amber / Command bar / Quit). Becomes the primary entry point when the dock icon is off.
+- **Toggle the dock icon from Settings** — macOS activation policy: `set_activation_policy(Accessory)` hides it (menubar-only agent), `Regular` shows it; runtime-callable so a Settings switch drives it. Default **on**, with a hide toggle (Tucker to confirm if he'd rather ship off). Natural pairing: dock off → tray + Option+Space are how you summon it.
+- **Close ≠ quit** — intercept `WindowEvent::CloseRequested` → `prevent_close()` + `window.hide()`; app lives in the tray, real quit via tray menu (optionally also intercept Cmd+Q). Note: switching activation policy at runtime while a window is open can have minor focus quirks — fine in practice.
+- Caveat: dock-toggle + tray are macOS-shaped; Windows equivalents (`skipTaskbar` + system tray) live in the Windows-build checklist above.
+
 ## UX / polish parking lot
+- ~~**Source chips visibility should follow mode**~~ → done in M4 (research shows chips, companion/quick hide them — gated server-side). See [[journal/2026-05-31-m4-task-routing]].
 - **Custom hotkey: double-tap right Shift** — Tucker's actual ask for summoning the command bar. Not reachable via `tauri-plugin-global-shortcut` (combinations only; no modifier-only, no left/right-side, no double-tap). Would need a macOS `CGEventTap`/`rdev`-style global key monitor + an Accessibility-permission prompt. Currently Option+Space. Revisit alongside a user-configurable-hotkey setting.
-- **Source chips visibility should follow mode** — currently always shown ("GROUNDED IN" + full paths). Tucker: "I don't need to see that it's pulling this from the vault." Hide in companion/thought-partner mode, show in research mode (ties to M4 "mode is the primitive").
 - Markdown rendering in the chat panel (currently plain text / pre-wrap).
 - Command-bar palette auto-grow with the answer (fixed 480px today); needs window-resize permission.
 - Conversation history persistence + multiple threads.
@@ -47,3 +60,6 @@ related: [[build-status]]
 
 ### 2026-05-31 — Created
 Seeded from the build plan's "Later" section + threads raised through M2.
+
+### 2026-06-01 — Platform + native-behavior threads parked
+Captured two discussion threads as parked work: (1) the **Windows-build checklist** (hotkey, palette transparency, signing, tray/dock equivalents) — low priority, 2–3 Windows users; (2) **native macOS companion behaviors** (tray icon, Settings toggle for the dock icon via activation policy, close-to-hide) — confirmed all doable in Rust/Tauri, a clean self-contained next chunk. Also struck the M4-completed "source chips follow mode" item. Context: the "why Rust not Swift" Q (Tauri = cross-platform + coherent with cosi-platform + Tucker knows it) — rationale already lives in `docs/architecture-and-auth.md` + [[architecture]].
