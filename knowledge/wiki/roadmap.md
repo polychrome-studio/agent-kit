@@ -21,7 +21,7 @@ related: [[build-status]]
 
 ## Deferred capabilities
 - ~~**Model-decided web search (tool-use)**~~ → **BUILT 2026-06-01.** The agent tool-use loop ([[journal/2026-06-01-agent-loop]]) replaced forced `:online` with a `web_search` tool the model calls only when it judges it needs to — plus `search_vault`/`read_note`. The spine is in; remaining web polish: surface web citations as chips, and consider a dedicated search API vs the OpenRouter web-plugin sub-call.
-- **Vault write-back** — opt-in, explicit, matching the vault's own conventions (frontmatter, wikilinks). Never silent.
+- **Vault write-back** — opt-in, explicit, matching the vault's own conventions (frontmatter, wikilinks). Never silent. Becomes a tool on the agent loop ([[journal/2026-06-01-agent-loop]]). **Testing: Tucker will duplicate his FOUNDRY vault** to a safe sandbox to point Amber at before any write goes near the live vault (stated 2026-06-02). Needs a design huddle (what writes, where, format) before building.
 - **Vector search** — only if index+grep recall visibly fails as the vault grows.
 - **FAL media generation** — images/video; cosi-platform already wires FAL.
 - **Keychain key storage** — at release, once the app is code-signed.
@@ -36,6 +36,9 @@ related: [[build-status]]
 ## Personalization & control (post-M4, surfaced 2026-05-31)
 - **User-definable personality / tone.** Common + expected (cf. ChatGPT Personalization: base style + characteristics + custom instructions). Amber should let the user shape Amber's voice — *but* the lever is per-**mode** (see M4 "mode is the primitive"), not one global slider: research wants pragmatic/straight, a thought-partner wants companion. Inferred from task type, user-overridable. The M2 persona prompt (`vault.rs::system_prompt`) is the current single hardcoded voice — this generalizes it.
 - **Curated model selection with guardrails — NOT free choice.** Tucker's key insight: *"if I give people full choice they will always go for the biggest most expensive."* So: the **harness decides the tier** the task needs; the user only picks from a **short curated shortlist within that tier**, framed as intent ("fast" vs "deep"), never as raw model names. Admin holds the ceiling + (eventually) a **per-user token budget / limit** as a control surface. This is the M4 cost lever with a human-friendly face. Directly relevant to cosi-platform (multi-user, cost governance) — Amber is the proving ground.
+
+## Raycast-style window unification (direction set 2026-06-02 — design-led, see [[design]])
+Collapse the two-window model (decorated `main` + frameless `palette`) into ONE frameless morphing surface, the Raycast pattern: **no traffic-light window anywhere**; ⌥Space opens the compact bar; on send it **expands into the full chat surface** holding conversation history (multiple threads), the journal, and future features. Supersedes M3's two-window design. Net-new infra it implies: **conversation persistence** (today turns are ephemeral) + the expanded layout/nav. Tucker is designing the visual in [[design]]'s Figma file — build replicates from there. Pairs with the native macOS behaviors below (dock-off + tray + frameless = the Raycast model).
 
 ## Native macOS companion behaviors (next clean chunk — surfaced 2026-06-01)
 A self-contained increment that makes Amber behave like a real menubar companion (Raycast-pattern). All three are standard Tauri 2 / Rust — confirmed achievable, no fight with the stack:

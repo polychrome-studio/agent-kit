@@ -27,6 +27,7 @@ const KEY_FILE: &str = "openrouter.key";
 #[derive(Default)]
 pub(crate) struct CancelFlag(pub AtomicBool);
 const VAULT_FILE: &str = "vault.path";
+const DOCK_FILE: &str = "dock.hidden"; // presence of this file ⇒ dock icon hidden (menubar-only)
 
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct ChatMessage {
@@ -180,6 +181,57 @@ fn stop_chat(cancel: tauri::State<'_, CancelFlag>) {
     cancel.0.store(true, Ordering::Relaxed);
 }
 
+/// True if the user chose to hide the dock icon (menubar-only / Accessory app).
+fn dock_hidden(app: &AppHandle) -> bool {
+    config_dir(app)
+        .map(|d| d.join(DOCK_FILE).exists())
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+fn get_dock_hidden(app: AppHandle) -> bool {
+    dock_hidden(&app)
+}
+
+/// Toggle the dock icon. Persists the choice and applies it live.
+#[tauri::command]
+fn set_dock_hidden(app: AppHandle, hidden: bool) -> Result<(), String> {
+    let file = config_dir(&app)?.join(DOCK_FILE);
+    if hidden {
+        fs::write(&file, "1").map_err(|e| e.to_string())?;
+    } else if file.exists() {
+        fs::remove_file(&file).map_err(|e| e.to_string())?;
+    }
+    apply_activation_policy(&app, hidden);
+    Ok(())
+}
+
+/// Apply the macOS dock-icon visibility: Accessory = no dock icon (menubar app),
+/// Regular = normal. No-op off macOS.
+fn apply_activation_policy(app: &AppHandle, hidden: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        let policy = if hidden {
+            tauri::ActivationPolicy::Accessory
+        } else {
+            tauri::ActivationPolicy::Regular
+        };
+        let _ = app.set_activation_policy(policy);
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = (app, hidden);
+}
+
+/// Bring the main window to the front (tray "Open Amber" / left-click). Re-shows it if
+/// it was closed-to-hide.
+fn show_main(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+}
+
 /// Show/hide the command-bar window. The global shortcut and the menubar both
 /// route here. Showing also re-focuses and tells the palette UI to reset (one-shot
 /// grammar — every summon is a fresh query, see M3 in docs/build-plan.md).
@@ -224,7 +276,57 @@ pub fn run() {
             if let Err(e) = app.global_shortcut().register(hotkey) {
                 eprintln!("Amber: could not register Option+Space hotkey: {e}");
             }
+
+            // Apply the stored dock-icon preference at launch.
+            let handle = app.handle().clone();
+            apply_activation_policy(&handle, dock_hidden(&handle));
+
+            // Menu-bar (tray) icon — the companion's always-there presence. Left-click
+            // opens the main window; the menu offers the command bar + quit.
+            use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+            use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+            let open_i = MenuItem::with_id(app, "open", "Open Amber", true, None::<&str>)?;
+            let bar_i = MenuItem::with_id(app, "bar", "Command Bar  (⌥Space)", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Quit Amber", true, None::<&str>)?;
+            let menu = Menu::with_items(
+                app,
+                &[&open_i, &bar_i, &PredefinedMenuItem::separator(app)?, &quit_i],
+            )?;
+            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
+            TrayIconBuilder::with_id("amber-tray")
+                .icon(tray_icon)
+                .icon_as_template(true) // adapt to light/dark menu bar
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "open" => show_main(app),
+                    "bar" => toggle_palette(app),
+                    "quit" => app.exit(0),
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        show_main(tray.app_handle());
+                    }
+                })
+                .build(app)?;
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Closing a window doesn't quit Amber — hide it; the app lives in the tray.
+            // (Real quit = tray → Quit.) Only the main window close-to-hides; the palette
+            // already manages its own visibility.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             set_api_key,
@@ -232,6 +334,8 @@ pub fn run() {
             clear_api_key,
             get_vault_path,
             set_vault_path,
+            get_dock_hidden,
+            set_dock_hidden,
             chat,
             stop_chat
         ])

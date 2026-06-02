@@ -189,13 +189,26 @@ function Settings({
 }) {
   const [key, setKey] = useState("");
   const [vault, setVault] = useState("");
+  const [dockHidden, setDockHidden] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     invoke<string | null>("get_vault_path").then((p) => p && setVault(p));
+    invoke<boolean>("get_dock_hidden").then(setDockHidden);
   }, []);
+
+  async function toggleDock(hidden: boolean) {
+    setDockHidden(hidden);
+    try {
+      await invoke("set_dock_hidden", { hidden });
+      setNote(hidden ? "Dock icon hidden — Amber lives in the menu bar." : "Dock icon shown.");
+    } catch (e) {
+      setErr(String(e));
+      setDockHidden(!hidden);
+    }
+  }
 
   async function saveKey() {
     if (!key.trim()) return;
@@ -279,6 +292,18 @@ function Settings({
         <button className="secondary" onClick={() => saveVault()} disabled={busy}>
           {vault.trim() ? "Connect vault" : "Disconnect vault"}
         </button>
+
+        <div className="divider" />
+
+        <label className="field-label">Menu bar</label>
+        <label className="toggle-row">
+          <input
+            type="checkbox"
+            checked={dockHidden}
+            onChange={(e) => toggleDock(e.currentTarget.checked)}
+          />
+          <span>Hide dock icon — run from the menu bar only (⌥Space + tray)</span>
+        </label>
 
         {err && <p className="errline">{err}</p>}
         {note && !err && <p className="noteline">{note}</p>}

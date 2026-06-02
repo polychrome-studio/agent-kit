@@ -440,6 +440,21 @@ body.palette-window {
   background: var(--line);
   margin: 22px 0 18px;
 }
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1.4;
+}
+.toggle-row input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--amber-deep);
+  flex-shrink: 0;
+}
 .field-row {
   display: flex;
   gap: 8px;
