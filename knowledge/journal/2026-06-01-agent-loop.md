@@ -91,3 +91,7 @@ Parked in [[roadmap]], NOT built (only a light CSS tone-down done now):
 ### 10:19 — 27bc0f5
 Agent runtime: model-driven tool-use loop (the north-star spine)
 files: knowledge/journal/2026-06-01-agent-loop.md, knowledge/journal/2026-06-01-session.md, knowledge/wiki/build-status.md, knowledge/wiki/roadmap.md, src-tauri/src/agent.rs, src-tauri/src/lib.rs, src-tauri/src/router.rs, src-tauri/src/vault.rs, src/App.css, src/App.tsx, src/CommandBar.tsx, src/lib/chat.ts
+
+### 13:22 — ed4f493
+Fix web_search (harvest annotations), add stop button, tone down agent UI
+files: knowledge/journal/2026-06-01-agent-loop.md, knowledge/wiki/roadmap.md, src-tauri/src/agent.rs, src-tauri/src/lib.rs, src/App.css, src/App.tsx, src/CommandBar.tsx

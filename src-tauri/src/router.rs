@@ -19,19 +19,24 @@ pub enum Mode {
     Quick,
     /// The default — conversation, advice, recall, thinking together. Companion voice.
     Companion,
-    /// Find / synthesize / explain from the vault. Frontier model, pragmatic, sources shown.
+    /// Find / synthesize / explain from the vault + web. Sonnet — the agent tools do the
+    /// heavy lifting now, so research no longer needs the frontier model by default.
     Research,
+    /// Research, but escalated to the frontier model (Opus) — only on an explicit ask for
+    /// depth ("go deep", "think hard", "be thorough"). Opus is reserved, never a reflex.
+    Deep,
 }
 
 impl Mode {
     /// The OpenRouter slug that answers in this mode. Web access is no longer a forced
     /// `:online` suffix — it's the model-decided `web_search` tool (see [[agent]]), so the
-    /// model reaches the web only when it judges it needs to.
+    /// model reaches the web only when it judges it needs to. Default to the cheapest tier
+    /// that holds quality; Opus only for Deep (Tucker's "less Opus when quality holds").
     pub fn model(&self) -> &'static str {
         match self {
             Mode::Quick => "anthropic/claude-haiku-4.5",
-            Mode::Companion => "anthropic/claude-sonnet-4.6",
-            Mode::Research => "anthropic/claude-opus-4.8",
+            Mode::Companion | Mode::Research => "anthropic/claude-sonnet-4.6",
+            Mode::Deep => "anthropic/claude-opus-4.8",
         }
     }
 
@@ -47,13 +52,14 @@ impl Mode {
             Mode::Quick => "quick",
             Mode::Companion => "companion",
             Mode::Research => "research",
+            Mode::Deep => "deep",
         }
     }
 
-    /// Only research mode surfaces source chips — Tucker doesn't want to see the
-    /// sourcing during companion/quick work ("I don't need to see it's pulling from the vault").
+    /// Research + Deep surface source chips — Tucker doesn't want to see the sourcing
+    /// during companion/quick work ("I don't need to see it's pulling from the vault").
     pub fn show_sources(&self) -> bool {
-        matches!(self, Mode::Research)
+        matches!(self, Mode::Research | Mode::Deep)
     }
 
     /// The voice preamble. Always injected (even with no vault hit) so Amber's
@@ -72,7 +78,7 @@ impl Mode {
                  sentences, not paragraphs. No preamble; lead with the answer. Weave in what he \
                  already knows or has in flight, anticipate his next move, offer to go deeper."
             }
-            Mode::Research => {
+            Mode::Research | Mode::Deep => {
                 "You are Amber, doing research for Tucker. You have tools — USE THEM, don't answer \
                  from memory alone: `search_vault` then `read_note` to mine his own notes, and \
                  `web_search` for anything current, external, or missing from his notes. Don't just \
@@ -105,10 +111,19 @@ pub fn heuristic(query: &str) -> Option<Mode> {
         return Some(Mode::Quick);
     }
 
+    // Explicit escalation to the frontier model — the ONLY path that reaches Opus.
+    const DEEP: &[&str] = &[
+        "deep dive", "go deep", "think hard", "think harder", "be thorough", "thorough",
+        "exhaustive", "use opus", "best model", "most capable", "deeply",
+    ];
+    if DEEP.iter().any(|k| lc.contains(k)) {
+        return Some(Mode::Deep);
+    }
+
     const RESEARCH: &[&str] = &[
         "my notes", "my vault", "according to", "research ", "sources", "cite", "look up",
         "dig into", "compile", "across my", "what do my notes", "summarize the",
-        "summarise the", "everything about", "deep dive",
+        "summarise the", "everything about",
     ];
     if RESEARCH.iter().any(|k| lc.contains(k)) {
         return Some(Mode::Research);
@@ -182,6 +197,9 @@ mod tests {
         assert_eq!(heuristic("rewrite this paragraph to be tighter"), Some(Mode::Quick));
         assert_eq!(heuristic("what do my notes say about praxis"), Some(Mode::Research));
         assert_eq!(heuristic("research the vault for cost model decisions"), Some(Mode::Research));
+        // Explicit depth ask is the only path to Opus.
+        assert_eq!(heuristic("go deep on the GP1 account risks"), Some(Mode::Deep));
+        assert_eq!(heuristic("think hard about this and use opus"), Some(Mode::Deep));
         assert_eq!(heuristic("what should I focus on today"), Some(Mode::Companion));
         // Long + unsignalled → ambiguous, defer to the model.
         let long = "i was thinking about how the bridge product strategy connects to the broader \
@@ -194,6 +212,11 @@ mod tests {
         assert!(!Mode::Quick.tools());
         assert!(Mode::Companion.tools());
         assert!(Mode::Research.show_sources());
+        assert!(Mode::Deep.show_sources());
         assert!(!Mode::Companion.show_sources());
+        // Opus is reserved to Deep; everything else stays cheaper.
+        assert_eq!(Mode::Deep.model(), "anthropic/claude-opus-4.8");
+        assert_eq!(Mode::Research.model(), "anthropic/claude-sonnet-4.6");
+        assert_ne!(Mode::Companion.model(), Mode::Deep.model());
     }
 }
