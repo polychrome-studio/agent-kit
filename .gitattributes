@@ -1,0 +1,4 @@
+
+# knowledge-layer generated files — union merge to avoid conflicts
+knowledge/wiki/_codemap.md merge=union
+knowledge/_codemap.json merge=union

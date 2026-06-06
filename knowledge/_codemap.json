@@ -1,0 +1,373 @@
+{
+  "generated": "2026-06-06T14:47:28",
+  "confidence": "EXTRACTED",
+  "root": "/Users/tucker/Code/personal/amber",
+  "modules": [
+    {
+      "file": "src/App.tsx",
+      "lang": "tsx",
+      "symbols": [
+        "fn App",
+        "fn Settings"
+      ],
+      "imports": [
+        "./App.css",
+        "./lib/chat",
+        "@tauri-apps/api/core",
+        "@tauri-apps/plugin-dialog",
+        "react"
+      ]
+    },
+    {
+      "file": "src/CommandBar.tsx",
+      "lang": "tsx",
+      "symbols": [
+        "export fn CommandBar"
+      ],
+      "imports": [
+        "./lib/chat",
+        "@tauri-apps/api/core",
+        "@tauri-apps/api/window",
+        "react"
+      ]
+    },
+    {
+      "file": "src/lib/chat.ts",
+      "lang": "typescript",
+      "symbols": [
+        "export type Role",
+        "export interface Meta",
+        "export interface ToolStep",
+        "export interface Message",
+        "export type StreamEvent",
+        "export interface StreamHandlers",
+        "export fn toolLine",
+        "export fn prettyModel",
+        "export fn streamChat"
+      ],
+      "imports": [
+        "@tauri-apps/api/core"
+      ]
+    },
+    {
+      "file": "src/main.tsx",
+      "lang": "tsx",
+      "symbols": [],
+      "imports": [
+        "./App",
+        "./App.css",
+        "./CommandBar",
+        "@tauri-apps/api/window",
+        "react",
+        "react-dom/client"
+      ]
+    },
+    {
+      "file": "src/vite-env.d.ts",
+      "lang": "typescript",
+      "symbols": [],
+      "imports": []
+    },
+    {
+      "file": "src-tauri/build.rs",
+      "lang": "rust",
+      "symbols": [
+        "fn main"
+      ],
+      "imports": []
+    },
+    {
+      "file": "src-tauri/src/agent.rs",
+      "lang": "rust",
+      "symbols": [
+        "const CLASSIFIER_WEB_MODEL",
+        "const MAX_STEPS",
+        "struct PartialToolCall",
+        "fn tool_schemas",
+        "pub fn run",
+        "fn stream_once",
+        "fn accumulate",
+        "fn merge_tool_calls",
+        "fn execute",
+        "fn web_search",
+        "fn arg_preview",
+        "mod tests"
+      ],
+      "imports": [
+        "crate::router::Mode",
+        "crate::{ChatMessage, StreamEvent}",
+        "serde_json::{json, Value}",
+        "std::sync::atomic::{AtomicBool, Ordering}",
+        "tauri::AppHandle",
+        "tauri::ipc::Channel"
+      ]
+    },
+    {
+      "file": "src-tauri/src/lib.rs",
+      "lang": "rust",
+      "symbols": [
+        "mod agent",
+        "mod router",
+        "mod vault",
+        "pub const OPENROUTER_URL",
+        "const KEY_FILE",
+        "pub struct CancelFlag",
+        "const VAULT_FILE",
+        "const DOCK_FILE",
+        "pub struct ChatMessage",
+        "pub enum StreamEvent",
+        "fn config_dir",
+        "fn key_path",
+        "fn read_key",
+        "fn set_api_key",
+        "fn has_api_key",
+        "fn clear_api_key",
+        "pub fn vault_path",
+        "fn get_vault_path",
+        "fn set_vault_path",
+        "fn chat",
+        "fn stop_chat",
+        "fn dock_hidden",
+        "fn get_dock_hidden",
+        "fn set_dock_hidden",
+        "fn apply_activation_policy",
+        "fn show_main",
+        "fn toggle_palette",
+        "pub fn run"
+      ],
+      "imports": [
+        "serde::{Deserialize, Serialize}",
+        "std::fs",
+        "std::path::PathBuf",
+        "std::sync::atomic::{AtomicBool, Ordering}",
+        "tauri::ipc::Channel",
+        "tauri::{AppHandle, Emitter, Manager}"
+      ]
+    },
+    {
+      "file": "src-tauri/src/main.rs",
+      "lang": "rust",
+      "symbols": [
+        "fn main"
+      ],
+      "imports": []
+    },
+    {
+      "file": "src-tauri/src/router.rs",
+      "lang": "rust",
+      "symbols": [
+        "const OPENROUTER_URL",
+        "const CLASSIFIER_MODEL",
+        "pub enum Mode",
+        "impl Mode [model, tools, label, show_sources, persona]",
+        "pub fn heuristic",
+        "pub fn classify",
+        "const CLASSIFY_PROMPT",
+        "fn classify_via_model",
+        "mod tests"
+      ],
+      "imports": []
+    },
+    {
+      "file": "src-tauri/src/vault.rs",
+      "lang": "rust",
+      "symbols": [
+        "const MAX_FILES_SCANNED",
+        "const SCORE_READ_CAP",
+        "const NOTE_INCLUDE_CAP",
+        "const INDEX_INCLUDE_CAP",
+        "const TOP_NOTES",
+        "const INDEX_CANDIDATES",
+        "const STOPWORDS",
+        "pub struct Note",
+        "pub struct VaultContext",
+        "impl VaultContext",
+        "fn truncate_chars",
+        "fn keywords",
+        "fn collect_markdown",
+        "fn read_capped",
+        "fn read_index",
+        "pub fn build_context",
+        "pub fn search_digest",
+        "pub fn read_note",
+        "pub fn context_block",
+        "mod tests"
+      ],
+      "imports": [
+        "std::fs",
+        "std::path::{Path, PathBuf}"
+      ]
+    },
+    {
+      "file": "vite.config.ts",
+      "lang": "typescript",
+      "symbols": [],
+      "imports": [
+        "@vitejs/plugin-react",
+        "vite"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "src/App.tsx",
+      "to": "./App.css",
+      "kind": "import"
+    },
+    {
+      "from": "src/App.tsx",
+      "to": "./lib/chat",
+      "kind": "import"
+    },
+    {
+      "from": "src/App.tsx",
+      "to": "@tauri-apps/api/core",
+      "kind": "import"
+    },
+    {
+      "from": "src/App.tsx",
+      "to": "@tauri-apps/plugin-dialog",
+      "kind": "import"
+    },
+    {
+      "from": "src/App.tsx",
+      "to": "react",
+      "kind": "import"
+    },
+    {
+      "from": "src/CommandBar.tsx",
+      "to": "./lib/chat",
+      "kind": "import"
+    },
+    {
+      "from": "src/CommandBar.tsx",
+      "to": "@tauri-apps/api/core",
+      "kind": "import"
+    },
+    {
+      "from": "src/CommandBar.tsx",
+      "to": "@tauri-apps/api/window",
+      "kind": "import"
+    },
+    {
+      "from": "src/CommandBar.tsx",
+      "to": "react",
+      "kind": "import"
+    },
+    {
+      "from": "src/lib/chat.ts",
+      "to": "@tauri-apps/api/core",
+      "kind": "import"
+    },
+    {
+      "from": "src/main.tsx",
+      "to": "./App",
+      "kind": "import"
+    },
+    {
+      "from": "src/main.tsx",
+      "to": "./App.css",
+      "kind": "import"
+    },
+    {
+      "from": "src/main.tsx",
+      "to": "./CommandBar",
+      "kind": "import"
+    },
+    {
+      "from": "src/main.tsx",
+      "to": "@tauri-apps/api/window",
+      "kind": "import"
+    },
+    {
+      "from": "src/main.tsx",
+      "to": "react",
+      "kind": "import"
+    },
+    {
+      "from": "src/main.tsx",
+      "to": "react-dom/client",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/agent.rs",
+      "to": "crate::router::Mode",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/agent.rs",
+      "to": "crate::{ChatMessage, StreamEvent}",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/agent.rs",
+      "to": "serde_json::{json, Value}",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/agent.rs",
+      "to": "std::sync::atomic::{AtomicBool, Ordering}",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/agent.rs",
+      "to": "tauri::AppHandle",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/agent.rs",
+      "to": "tauri::ipc::Channel",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/lib.rs",
+      "to": "serde::{Deserialize, Serialize}",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/lib.rs",
+      "to": "std::fs",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/lib.rs",
+      "to": "std::path::PathBuf",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/lib.rs",
+      "to": "std::sync::atomic::{AtomicBool, Ordering}",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/lib.rs",
+      "to": "tauri::ipc::Channel",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/lib.rs",
+      "to": "tauri::{AppHandle, Emitter, Manager}",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/vault.rs",
+      "to": "std::fs",
+      "kind": "import"
+    },
+    {
+      "from": "src-tauri/src/vault.rs",
+      "to": "std::path::{Path, PathBuf}",
+      "kind": "import"
+    },
+    {
+      "from": "vite.config.ts",
+      "to": "@vitejs/plugin-react",
+      "kind": "import"
+    },
+    {
+      "from": "vite.config.ts",
+      "to": "vite",
+      "kind": "import"
+    }
+  ]
+}

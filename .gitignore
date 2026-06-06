@@ -51,3 +51,5 @@ knowledge/journal/.last-breadcrumb
 
 # === Asset handoff (scratch — drop files here for Claude; not versioned) ===
 _inbox/
+# knowledge-layer codemap hook state
+knowledge/journal/.last-codemap
