@@ -39,10 +39,18 @@ if ! printf '%s\n' "$changed" | grep -qE '\.(rs|ts|tsx|js|mjs|cjs|php|py)$'; the
   exit 0
 fi
 
-# Locate codemap.py (relative to this script's install location inside the skill)
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-codemap_py="$(dirname "$script_dir")/scripts/codemap.py"
-[ -f "$codemap_py" ] || exit 0   # skill not fully installed — skip silently
+# Locate codemap.py — fallback resolution chain (machine-portable):
+#   1. Repo root's .claude/scripts/codemap.py  (in-repo copy, preferred)
+#   2. Installed skill:  $HOME/.claude/skills/knowledge-layer/scripts/codemap.py
+# If neither exists, exit 0 silently — never fail the commit.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+codemap_py=""
+_candidate1="$repo_root/.claude/scripts/codemap.py"
+_candidate2="$HOME/.claude/skills/knowledge-layer/scripts/codemap.py"
+if   [ -f "$_candidate1" ]; then codemap_py="$_candidate1"
+elif [ -f "$_candidate2" ]; then codemap_py="$_candidate2"
+else exit 0   # neither path available — skip silently
+fi
 
 # Skip if uv not in PATH (portability: silent, not fatal)
 command -v uv >/dev/null 2>&1 || exit 0
