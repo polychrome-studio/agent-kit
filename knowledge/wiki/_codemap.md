@@ -1,7 +1,7 @@
 ---
 name: _codemap
 type: meta
-generated: 2026-06-06 14:47
+generated: 2026-06-06 14:51
 confidence: EXTRACTED
 do_not_edit: true
 ---
@@ -12,7 +12,7 @@ do_not_edit: true
 > Languages: rust, tsx, typescript  
 > Files: 12 · Symbols: 83  
 > Regenerate: `uv run --with tree-sitter --with tree-sitter-language-pack python3 /Users/tucker/Library/CloudStorage/Dropbox/•Projects/knowledge-layer/scripts/codemap.py [repo-root]`  
-> Last generated: 2026-06-06 14:47
+> Last generated: 2026-06-06 14:51
 
 Consult this map for "how is X wired / where does Y live" before grepping.
 Grep only to confirm or when the map is stale. The curated wiki/ADRs hold the WHY.
