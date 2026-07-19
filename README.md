@@ -38,7 +38,7 @@ An agent-kit agent doesn't contain knowledge — it mounts a [dotKnowledge](http
 
 v0 RFC. [foundry](https://github.com/polychrome-studio/foundry) already runs a conductor shaped like this, so it's being dogfooded there before anything here is declared stable. No `SPEC.md` yet; this README is the whole spec until real use says it needs to be split out.
 
-**Open, not yet resolved:** this repo's earlier life was a Mac app (Amber, a desktop agent shell) — its actual build scaffold is still sitting in this repo, untouched, while the README above was rewritten around it. Whether that app becomes its own separate reference implementation (the way Throughline is dotKnowledge's) or gets archived now that foundry is filling that role is a real open question, not something resolved by this rewrite.
+This repo's earlier life was a Mac app (Amber, a desktop agent shell) — that project's dead, and its build scaffold has been removed. foundry is the reference implementation.
 
 ## License
 
