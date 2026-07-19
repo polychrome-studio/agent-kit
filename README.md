@@ -24,15 +24,15 @@ my-agent/
 
 This structure is deliberately not novel. It's the same shape [Vercel's `eve`](https://github.com/vercel/eve) landed on — "an agent is a directory," `instructions.md` + `tools/`/`skills/`/`channels/`/`schedules/` — and eve's own author pairs it explicitly with Google's Open Knowledge Format: *"eve is the standard for how we structure our agent, and OKF is the standard for how we structure the knowledge bases we attach the agents to."* Since [dotKnowledge](https://github.com/polychrome-studio/dotKnowledge) is OKF-conformant, that pairing is the intended one — agent-kit exists to make it explicit and to keep it usable outside eve's own runtime.
 
-**The actual difference from eve:** eve is a full framework — an npm package that *compiles and deploys* a conformant directory to a hosted, checkpointed production service. agent-kit defines only the *shape*, with no runtime opinion at all. A lightweight, local, markdown-only harness (a Claude Code console, for instance) can conform to agent-kit without needing eve, a compile step, or Node — the same way a `.knowledge` capsule doesn't need a specific app to be a valid capsule. eve-conformant agents should also read as valid agent-kit agents; the reverse isn't required, since agent-kit's baseline is deliberately lighter.
+**The actual difference from eve:** eve is a full framework — an npm package that *compiles and deploys* a conformant directory to a hosted, checkpointed production service. agent-kit defines only the *shape*, with no runtime opinion at all. A lightweight, local, markdown-only harness (a Claude Code console, for instance) can conform to agent-kit without needing eve, a compile step, or Node — the same way a `.knowledge` bundle doesn't need a specific app to be a valid bundle. eve-conformant agents should also read as valid agent-kit agents; the reverse isn't required, since agent-kit's baseline is deliberately lighter.
 
-## How it mounts a capsule
+## How it mounts a knowledge bundle
 
-An agent-kit agent doesn't contain knowledge — it mounts a [dotKnowledge](https://github.com/polychrome-studio/dotKnowledge) capsule the same way [foundry](https://github.com/polychrome-studio/foundry) does: the capsule stays a separate, portable, sealed bundle; the agent reads it, never owns it. Swap the mounted capsule and the same agent shell runs for a different subject.
+An agent-kit agent doesn't contain knowledge — it mounts a [dotKnowledge](https://github.com/polychrome-studio/dotKnowledge) bundle the same way [foundry](https://github.com/polychrome-studio/foundry) does: the bundle stays a separate, portable, sealed package; the agent reads it, never owns it. Swap the mounted bundle and the same agent shell runs for a different subject.
 
 ## Skills, addressed the same way twice
 
-`agent/skills/` here and `<subject>.knowledge/skills/` in a [knowledge-kit](https://github.com/polychrome-studio/knowledge-kit) capsule are the same file format — see [skills-kit](https://github.com/polychrome-studio/skills-kit). A skill in an agent is role-general (true regardless of which capsule is mounted); a skill in a capsule is subject-specific (true about that one subject, swapped when the capsule swaps). Same shape, different mount point.
+`agent/skills/` here and `<subject>.knowledge/skills/` in a [knowledge-kit](https://github.com/polychrome-studio/knowledge-kit) bundle are the same file format — see [skills-kit](https://github.com/polychrome-studio/skills-kit). A skill in an agent is role-general (true regardless of which bundle is mounted); a skill in a bundle is subject-specific (true about that one subject, swapped when the bundle swaps). Same shape, different mount point.
 
 ## Status & roadmap
 
